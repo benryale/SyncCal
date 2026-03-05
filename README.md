@@ -1,4 +1,4 @@
-# SyncCal# SyncCal
+# SyncCal
 
 A collaborative calendar application for identifying mutual free time across multiple users.
 
