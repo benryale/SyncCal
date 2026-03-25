@@ -37,6 +37,7 @@ python manage.py runserver
 ```bash
 cd frontend
 npm install
+npm install axios
 npm run dev
 ```
 
