@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
-// import axios from 'axios';
+import axios from 'axios';
 
 const Calendar = () => {
   const [events, setEvents] = useState([]);
