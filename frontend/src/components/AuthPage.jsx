@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Box, Button, Input, Heading, Text, VStack } from '@chakra-ui/react'
 
 function AuthPage({ onAuth }) {
   const [mode, setMode] = useState('login')
@@ -11,13 +12,16 @@ function AuthPage({ onAuth }) {
     e.preventDefault()
     setError('')
 
-    const url = mode === 'login'
-      ? '/api/auth/login/'
-      : '/api/auth/register/'
+    let url
+    let body
 
-    const body = mode === 'login'
-      ? { username, password }
-      : { username, email, password }
+    if (mode === 'login') {
+      url = '/api/auth/login/'
+      body = { username, password }
+    } else {
+      url = '/api/auth/register/'
+      body = { username, email, password }
+    }
 
     const res = await fetch(url, {
       method: 'POST',
@@ -36,51 +40,47 @@ function AuthPage({ onAuth }) {
   }
 
   return (
-    <div style={{ maxWidth: '400px', margin: '100px auto', padding: '20px' }}>
-      <h2>{mode === 'login' ? 'Login' : 'Register'}</h2>
+    <Box maxW="400px" mx="auto" mt="100px" p="8" borderWidth="1px" borderRadius="lg">
+      <Heading mb="6">{mode === 'login' ? 'Login' : 'Register'}</Heading>
 
       <form onSubmit={submit}>
-        <div>
-          <input
+        <VStack gap="4">
+          <Input
             placeholder="Username"
             value={username}
             onChange={e => setUsername(e.target.value)}
           />
-        </div>
 
-        {mode === 'register' && (
-          <div>
-            <input
+          {mode === 'register' && (
+            <Input
               placeholder="Email"
               value={email}
               onChange={e => setEmail(e.target.value)}
             />
-          </div>
-        )}
+          )}
 
-        <div>
-          <input
+          <Input
             type="password"
             placeholder="Password"
             value={password}
             onChange={e => setPassword(e.target.value)}
           />
-        </div>
 
-        {error && <p style={{ color: 'red' }}>{error}</p>}
+          {error && <Text color="red.500">{error}</Text>}
 
-        <button type="submit">
-          {mode === 'login' ? 'Login' : 'Register'}
-        </button>
+          <Button type="submit" width="100%" colorScheme="blue">
+            {mode === 'login' ? 'Login' : 'Register'}
+          </Button>
+        </VStack>
       </form>
 
-      <p>
+      <Text mt="4" textAlign="center">
         {mode === 'login'
           ? <span>No account? <a href="#" onClick={() => setMode('register')}>Register</a></span>
           : <span>Have an account? <a href="#" onClick={() => setMode('login')}>Login</a></span>
         }
-      </p>
-    </div>
+      </Text>
+    </Box>
   )
 }
 
