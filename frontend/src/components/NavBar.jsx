@@ -1,4 +1,6 @@
 import { Box, Button, Text } from '@chakra-ui/react'
+import { CalendarSync } from 'lucide-react';
+
 
 function NavBar({ user, onLogout, onLoginClick }) {
   return (
@@ -6,6 +8,7 @@ function NavBar({ user, onLogout, onLoginClick }) {
       px="6" h="56px" display="flex" alignItems="center" justifyContent="space-between">
       
       <Button variant="ghost" size="lg" _hover={{ bg: 'transparent' }} p="0" onClick={() => window.location.href = '/'}>
+        <CalendarSync size={24} color="#1a2744" style={{ marginLeft: '4px' }} />
         <Text fontSize="lg" fontWeight="500" color="gray.800">SyncCal</Text>
       </Button>
 
