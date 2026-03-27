@@ -4,8 +4,10 @@ function NavBar({ user, onLogout, onLoginClick }) {
   return (
     <Box bg="white" borderBottom="1px solid" borderColor="gray.100"
       px="6" h="56px" display="flex" alignItems="center" justifyContent="space-between">
-
-      <Text fontSize="lg" fontWeight="500" color="gray.800">SyncCal</Text>
+      
+      <Button variant="ghost" size="lg" _hover={{ bg: 'transparent' }} p="0" onClick={() => window.location.href = '/'}>
+        <Text fontSize="lg" fontWeight="500" color="gray.800">SyncCal</Text>
+      </Button>
 
       <Box display="flex" alignItems="center" gap="3">
         {user ? (
