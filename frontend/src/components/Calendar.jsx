@@ -4,6 +4,18 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import axios from 'axios';
 
+import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+
 const Calendar = () => {
   const [events, setEvents] = useState([]);
   const [showModal, setShowModal] = useState(false);
@@ -83,50 +95,67 @@ const Calendar = () => {
         height="75vh"
       />
 
-      {/* The Popup Form */}
-      {showModal && (
-        <div style={modalOverlayStyle}>
-          <div style={modalContentStyle}>
-            <h3>Add New Event</h3>
-            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <label>Event Title</label>
-              <input type="text" name="title" value={formData.title} onChange={handleInputChange} required />
+      <Dialog open={showModal} onOpenChange={setShowModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add New Event</DialogTitle>
+            <DialogDescription>
+              Pick a time block and save it to your calendar.
+            </DialogDescription>
+          </DialogHeader>
 
-              <label>Start Time</label>
-              <input type="datetime-local" name="start_date" value={formData.start_date} onChange={handleInputChange} required />
+          <form onSubmit={handleSubmit} className="grid gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="title">Event Title</Label>
+              <Input
+                id="title"
+                name="title"
+                value={formData.title}
+                onChange={handleInputChange}
+                placeholder="Team sync"
+                required
+              />
+            </div>
 
-              <label>End Time</label>
-              <input type="datetime-local" name="end_date" value={formData.end_date} onChange={handleInputChange} required />
+            <div className="grid gap-2">
+              <Label htmlFor="start_date">Start Time</Label>
+              <Input
+                id="start_date"
+                type="datetime-local"
+                name="start_date"
+                value={formData.start_date}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '15px' }}>
-                <button type="button" onClick={() => setShowModal(false)}>Cancel</button>
-                <button type="submit">Save Event</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+            <div className="grid gap-2">
+              <Label htmlFor="end_date">End Time</Label>
+              <Input
+                id="end_date"
+                type="datetime-local"
+                name="end_date"
+                value={formData.end_date}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+
+            <DialogFooter className="mt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowModal(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit">Save Event</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
-};
-
-// Simple inline styles for the modal
-const modalOverlayStyle = {
-  position: 'absolute',
-  top: 0, left: 0, right: 0, bottom: 0,
-  backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  display: 'flex',
-  justifyContent: 'center',
-  alignItems: 'center',
-  zIndex: 1000
-};
-
-const modalContentStyle = {
-  backgroundColor: 'white',
-  padding: '20px',
-  borderRadius: '8px',
-  width: '300px',
-  boxShadow: '0 4px 8px rgba(0,0,0,0.2)'
 };
 
 export default Calendar;
