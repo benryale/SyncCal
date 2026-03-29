@@ -1,38 +1,35 @@
-import { Box, Button, Text } from '@chakra-ui/react'
 import { CalendarSync } from 'lucide-react';
-
+import { Button } from "@/components/ui/button"
 
 function NavBar({ user, onLogout, onLoginClick }) {
   return (
-    <Box bg="white" borderBottom="1px solid" borderColor="gray.100"
-      px="6" h="56px" display="flex" alignItems="center" justifyContent="space-between">
-      
-      <Button variant="ghost" size="lg" _hover={{ bg: 'transparent' }} p="0" onClick={() => window.location.href = '/'}>
-        <CalendarSync size={24} color="#1a2744" style={{ marginLeft: '4px' }} />
-        <Text fontSize="lg" fontWeight="500" color="gray.800">SyncCal</Text>
-      </Button>
+    <nav className="h-16 border-b border-border bg-white px-8 flex items-center justify-between">
+      <button
+        className="flex items-center gap-2.5 hover:opacity-80 transition-opacity"
+        onClick={() => window.location.href = '/'}
+      >
+        <CalendarSync size={24} className="text-[#1a2744]" />
+        <span className="text-lg font-medium text-[#1a2744]">SyncCal</span>
+      </button>
 
-      <Box display="flex" alignItems="center" gap="3">
+      <div className="flex items-center gap-4">
         {user ? (
           <>
-            <Box w="30px" h="30px" borderRadius="full" bg="blue.50"
-              display="flex" alignItems="center" justifyContent="center"
-              fontSize="xs" fontWeight="500" color="blue.700">
+            <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-xs font-medium text-blue-700">
               {user.username[0].toUpperCase()}
-            </Box>
-            <Text fontSize="sm" color="gray.500">{user.username}</Text>
-            <Button size="sm" variant="outline" onClick={onLogout}>
+            </div>
+            <span className="text-sm text-muted-foreground">{user.username}</span>
+            <Button variant="outline" onClick={onLogout}>
               Sign out
             </Button>
           </>
         ) : (
-          <Button size="sm" onClick={onLoginClick}
-            bg="#1a2744" color="white">
+          <Button onClick={onLoginClick}>
             Sign In
           </Button>
         )}
-      </Box>
-    </Box>
+      </div>
+    </nav>
   )
 }
 
