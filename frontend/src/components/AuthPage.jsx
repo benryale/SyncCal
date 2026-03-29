@@ -1,5 +1,7 @@
 import { useState } from 'react'
-import { Box, Button, Input, Heading, Text, VStack } from '@chakra-ui/react'
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 
 function AuthPage({ onAuth }) {
   const [mode, setMode] = useState('login')
@@ -40,47 +42,61 @@ function AuthPage({ onAuth }) {
   }
 
   return (
-    <Box maxW="400px" mx="auto" mt="100px" p="8" borderWidth="1px" borderRadius="lg">
-      <Heading mb="6">{mode === 'login' ? 'Login' : 'Register'}</Heading>
+    <div className="mx-auto mt-24 max-w-sm rounded-lg border border-border p-8">
+      <h2 className="text-xl font-semibold text-foreground mb-6">
+        {mode === 'login' ? 'Login' : 'Register'}
+      </h2>
 
       <form onSubmit={submit}>
-        <VStack gap="4">
-          <Input
-            placeholder="Username"
-            value={username}
-            onChange={e => setUsername(e.target.value)}
-          />
+        <div className="flex flex-col gap-4">
+          <div className="grid gap-1.5">
+            <Label htmlFor="username">Username</Label>
+            <Input
+              id="username"
+              placeholder="Username"
+              value={username}
+              onChange={e => setUsername(e.target.value)}
+            />
+          </div>
 
           {mode === 'register' && (
-            <Input
-              placeholder="Email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-            />
+            <div className="grid gap-1.5">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                placeholder="Email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+              />
+            </div>
           )}
 
-          <Input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-          />
+          <div className="grid gap-1.5">
+            <Label htmlFor="password">Password</Label>
+            <Input
+              id="password"
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+            />
+          </div>
 
-          {error && <Text color="red.500">{error}</Text>}
+          {error && <p className="text-sm text-destructive">{error}</p>}
 
-          <Button type="submit" width="100%" colorScheme="blue">
+          <Button type="submit" className="w-full">
             {mode === 'login' ? 'Login' : 'Register'}
           </Button>
-        </VStack>
+        </div>
       </form>
 
-      <Text mt="4" textAlign="center">
+      <p className="mt-4 text-center text-sm text-muted-foreground">
         {mode === 'login'
-          ? <span>No account? <a href="#" onClick={() => setMode('register')}>Register</a></span>
-          : <span>Have an account? <a href="#" onClick={() => setMode('login')}>Login</a></span>
+          ? <span>No account? <button className="text-foreground hover:underline font-medium" onClick={() => setMode('register')}>Register</button></span>
+          : <span>Have an account? <button className="text-foreground hover:underline font-medium" onClick={() => setMode('login')}>Login</button></span>
         }
-      </Text>
-    </Box>
+      </p>
+    </div>
   )
 }
 

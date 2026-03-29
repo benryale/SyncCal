@@ -5,7 +5,7 @@ function NavBar({ user, onLogout, onLoginClick }) {
   return (
     <nav className="h-16 border-b border-border bg-white px-8 flex items-center justify-between">
       <button
-        className="flex items-center gap-2.5 hover:opacity-80 transition-opacity"
+        className="flex items-center gap-2.5 cursor-pointer hover:opacity-80 transition-opacity"
         onClick={() => window.location.href = '/'}
       >
         <CalendarSync size={24} className="text-[#1a2744]" />
