@@ -1,31 +1,34 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import axios from 'axios';
+import { CalendarDays, Clock3, LoaderCircle } from 'lucide-react';
 
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Separator } from "@/components/ui/separator"
+
+const initialFormData = {
+  title: '',
+  start_date: '',
+  end_date: ''
+};
 
 const Calendar = () => {
   const [events, setEvents] = useState([]);
   const [showModal, setShowModal] = useState(false);
-  const [formData, setFormData] = useState({
-    title: '',
-    start_date: '',
-    end_date: ''
-  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState(initialFormData);
 
-  // Fetch events on load
   useEffect(() => {
     fetchEvents();
   }, []);
@@ -45,24 +48,44 @@ const Calendar = () => {
     }
   };
 
-  // Open modal and pre-fill dates when a day is clicked
+  const resetForm = () => {
+    setFormData(initialFormData);
+  };
+
   const handleDateClick = (arg) => {
     setFormData({
       title: '',
-      start_date: `${arg.dateStr}T10:00`, 
+      start_date: `${arg.dateStr}T10:00`,
       end_date: `${arg.dateStr}T11:00`
     });
     setShowModal(true);
   };
 
-  // Handle typing in the form
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // Submit the form to Django
+  const closeModal = () => {
+    setShowModal(false);
+    setIsSubmitting(false);
+    resetForm();
+  };
+
+  const startDate = formData.start_date ? new Date(formData.start_date) : null;
+  const endDate = formData.end_date ? new Date(formData.end_date) : null;
+  const hasInvalidRange = Boolean(startDate && endDate && startDate >= endDate);
+  const isFormIncomplete = !formData.title.trim() || !formData.start_date || !formData.end_date;
+  const formError = hasInvalidRange ? 'End time must be after the start time.' : '';
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (isFormIncomplete || hasInvalidRange || isSubmitting) {
+      return;
+    }
+
+    setIsSubmitting(true);
+
     try {
       const response = await axios.post('http://127.0.0.1:8000/api/events/', {
         ...formData,
@@ -78,10 +101,11 @@ const Calendar = () => {
         start: newEvent.start_date,
         end: newEvent.end_date,
       }]);
-      setShowModal(false);
+      closeModal();
     } catch (error) {
       console.error("Error creating event:", error);
       alert("Failed to save event. Make sure Django is running!");
+      setIsSubmitting(false);
     }
   };
 
@@ -95,62 +119,106 @@ const Calendar = () => {
         height="75vh"
       />
 
-      <Dialog open={showModal} onOpenChange={setShowModal}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Add New Event</DialogTitle>
-            <DialogDescription>
-              Pick a time block and save it to your calendar.
+      <Dialog
+        open={showModal}
+        onOpenChange={(open) => {
+          if (!open) {
+            closeModal();
+            return;
+          }
+
+          setShowModal(true);
+        }}
+      >
+        <DialogContent className="overflow-hidden p-0 sm:max-w-md">
+          <DialogHeader className="px-6 pt-6 pb-0">
+            <DialogTitle className="text-lg font-semibold">
+              New event
+            </DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground">
+              Add an event to your calendar.
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleSubmit} className="grid gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="title">Event Title</Label>
-              <Input
-                id="title"
-                name="title"
-                value={formData.title}
-                onChange={handleInputChange}
-                placeholder="Team sync"
-                required
-              />
+          <form onSubmit={handleSubmit} className="grid">
+            <div className="grid gap-5 px-6 py-5">
+              <div className="grid gap-1.5">
+                <Label htmlFor="title" className="text-sm font-medium">Event title</Label>
+                <Input
+                  id="title"
+                  name="title"
+                  value={formData.title}
+                  onChange={handleInputChange}
+                  placeholder="Weekly sync, office hours, project review"
+                  className="h-10"
+                  required
+                />
+              </div>
+
+              <Separator />
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid gap-1.5">
+                  <Label htmlFor="start_date" className="flex items-center gap-1.5 text-sm font-medium">
+                    <CalendarDays className="size-3.5 text-muted-foreground" />
+                    Start
+                  </Label>
+                  <Input
+                    id="start_date"
+                    type="datetime-local"
+                    name="start_date"
+                    value={formData.start_date}
+                    onChange={handleInputChange}
+                    className="h-10"
+                    required
+                  />
+                </div>
+
+                <div className="grid gap-1.5">
+                  <Label htmlFor="end_date" className="flex items-center gap-1.5 text-sm font-medium">
+                    <Clock3 className="size-3.5 text-muted-foreground" />
+                    End
+                  </Label>
+                  <Input
+                    id="end_date"
+                    type="datetime-local"
+                    name="end_date"
+                    value={formData.end_date}
+                    onChange={handleInputChange}
+                    className="h-10"
+                    required
+                  />
+                </div>
+              </div>
+
+              {formError && (
+                <p className="text-sm text-red-500">{formError}</p>
+              )}
             </div>
 
-            <div className="grid gap-2">
-              <Label htmlFor="start_date">Start Time</Label>
-              <Input
-                id="start_date"
-                type="datetime-local"
-                name="start_date"
-                value={formData.start_date}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="end_date">End Time</Label>
-              <Input
-                id="end_date"
-                type="datetime-local"
-                name="end_date"
-                value={formData.end_date}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
-
-            <DialogFooter className="mt-2">
+            <div className="flex items-center justify-end gap-2 border-t px-6 py-4">
               <Button
                 type="button"
-                variant="outline"
-                onClick={() => setShowModal(false)}
+                variant="ghost"
+                onClick={closeModal}
+                disabled={isSubmitting}
               >
                 Cancel
               </Button>
-              <Button type="submit">Save Event</Button>
-            </DialogFooter>
+              <Button
+                type="submit"
+                disabled={isSubmitting || isFormIncomplete || hasInvalidRange}
+              >
+                {isSubmitting ? (
+                  <>
+                    <LoaderCircle className="size-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  'Save event'
+                )}
+              </Button>
+            </div>
           </form>
         </DialogContent>
       </Dialog>
