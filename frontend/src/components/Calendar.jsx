@@ -15,7 +15,6 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Separator } from "@/components/ui/separator"
 
 const initialFormData = {
   title: '',
@@ -131,7 +130,7 @@ const Calendar = () => {
         }}
       >
         <DialogContent className="overflow-hidden p-0 sm:max-w-md">
-          <DialogHeader className="px-6 pt-6 pb-0">
+          <DialogHeader className="px-6 pt-5 pb-1">
             <DialogTitle className="text-lg font-semibold">
               New event
             </DialogTitle>
@@ -141,7 +140,7 @@ const Calendar = () => {
           </DialogHeader>
 
           <form onSubmit={handleSubmit} className="grid">
-            <div className="grid gap-5 px-6 py-5">
+            <div className="grid gap-4 px-6 pb-5">
               <div className="grid gap-1.5">
                 <Label htmlFor="title" className="text-sm font-medium">Event title</Label>
                 <Input
@@ -155,9 +154,7 @@ const Calendar = () => {
                 />
               </div>
 
-              <Separator />
-
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-3 rounded-lg border p-4 sm:grid-cols-2">
                 <div className="grid gap-1.5">
                   <Label htmlFor="start_date" className="flex items-center gap-1.5 text-sm font-medium">
                     <CalendarDays className="size-3.5 text-muted-foreground" />
@@ -196,7 +193,7 @@ const Calendar = () => {
               )}
             </div>
 
-            <div className="flex items-center justify-end gap-2 border-t px-6 py-4">
+            <div className="flex items-center justify-end gap-2 border-t px-6 py-3">
               <Button
                 type="button"
                 variant="ghost"
