@@ -109,7 +109,7 @@ const Calendar = () => {
   };
 
   return (
-    <div style={{ position: 'relative', marginTop: '20px' }}>
+    <div className="relative mt-5">
       <FullCalendar
         plugins={[dayGridPlugin, interactionPlugin]}
         initialView="dayGridMonth"
@@ -154,7 +154,7 @@ const Calendar = () => {
                 />
               </div>
 
-              <div className="grid gap-3 rounded-lg border p-4 sm:grid-cols-2">
+              <div className="grid gap-3 rounded-lg border bg-muted/30 p-4 sm:grid-cols-2">
                 <div className="grid gap-1.5">
                   <Label htmlFor="start_date" className="flex items-center gap-1.5 text-sm font-medium">
                     <CalendarDays className="size-3.5 text-muted-foreground" />
@@ -193,7 +193,7 @@ const Calendar = () => {
               )}
             </div>
 
-            <div className="flex items-center justify-between border-t px-6 py-3">
+            <div className="flex items-center justify-between border-t bg-muted/20 px-6 py-3">
               <Button
                 type="button"
                 variant="ghost"
