@@ -130,7 +130,7 @@ const Calendar = () => {
         }}
       >
         <DialogContent className="overflow-hidden p-0 sm:max-w-md">
-          <DialogHeader className="px-6 pt-5 pb-1">
+          <DialogHeader className="px-6 pt-5 pb-1 text-center">
             <DialogTitle className="text-lg font-semibold">
               New event
             </DialogTitle>
@@ -149,7 +149,7 @@ const Calendar = () => {
                   value={formData.title}
                   onChange={handleInputChange}
                   placeholder="Weekly sync, office hours, project review"
-                  className="h-10"
+                  className="h-10 bg-muted/50"
                   required
                 />
               </div>
@@ -193,7 +193,7 @@ const Calendar = () => {
               )}
             </div>
 
-            <div className="flex items-center justify-end gap-2 border-t px-6 py-3">
+            <div className="flex items-center justify-between border-t px-6 py-3">
               <Button
                 type="button"
                 variant="ghost"
