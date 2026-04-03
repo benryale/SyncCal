@@ -38,4 +38,5 @@ def login_view(request):
         return JsonResponse({'error': 'Invalid credentials'}, status=401)
 
     login(request, user)
-    return JsonResponse({'id': user.id, 'username': user.username})
+    return JsonResponse({'id': user.id, 'username': user.username})\
+        
