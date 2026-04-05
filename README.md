@@ -15,7 +15,7 @@ A collaborative calendar application for identifying mutual free time across mul
 ### Prerequisites
 - Docker + Docker Compose
 - Python 3.11+
-- Node.js 18+
+- Node.js 20+
 
 ### 1. Start the database and Redis
 ```bash
