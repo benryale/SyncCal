@@ -1,5 +1,6 @@
 import { Box, Button, Text } from '@chakra-ui/react'
 import { CalendarSync } from 'lucide-react';
+import SearchBar from './SearchBar';
 
 
 function NavBar({ user, onLogout, onLoginClick }) {
@@ -11,6 +12,8 @@ function NavBar({ user, onLogout, onLoginClick }) {
         <CalendarSync size={24} color="#1a2744" style={{ marginLeft: '4px' }} />
         <Text fontSize="lg" fontWeight="500" color="gray.800">SyncCal</Text>
       </Button>
+
+      <SearchBar user={user} />
 
       <Box display="flex" alignItems="center" gap="3">
         {user ? (

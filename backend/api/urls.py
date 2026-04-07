@@ -10,5 +10,7 @@ urlpatterns = [
     path('health/', api_views.health),
     path('auth/register/', api_views.register),
     path('auth/login/', api_views.login_view),
+    path('users/search/', api_views.search_users),
+    path('friends/request/', api_views.send_friend_request),
     path('',include(router.urls)), # This gives React access to GET, POST, PUT/DELETE /api/events
 ]
