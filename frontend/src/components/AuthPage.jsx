@@ -35,6 +35,7 @@ function AuthPage({ onAuth }) {
     if (!res.ok) {
       setError(data.error)
     } else {
+      localStorage.setItem('token',data.token);
       onAuth(data)
     }
   }
