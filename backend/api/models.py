@@ -8,9 +8,15 @@ class FriendRequest(models.Model):
         ('accepted', 'Accepted'),
         ('declined', 'Declined'),
     ]
+    ## models.Model provide create read update delete query;
+    ## 
+    # Who sends request
     from_user = models.ForeignKey(User, related_name='sent_requests', on_delete=models.CASCADE)
+    # Who receives request
     to_user = models.ForeignKey(User, related_name='received_requests', on_delete=models.CASCADE)
+    # pending/accepted/declined
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
+    #created time 
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
