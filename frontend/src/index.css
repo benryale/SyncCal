@@ -138,3 +138,28 @@
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
 }
+
+.fc .fc-toolbar-title {
+  font-size: 1.5rem !important;
+  font-weight: 700 !important;
+  color: #1a202c !important;
+}
+
+.fc .fc-daygrid-day-number, 
+.fc .fc-col-header-cell-cushion {
+  color: #2d3748 !important;
+  font-weight: 500 !important;
+  text-decoration: none !important;
+  padding: 4px 8px !important;
+}
+
+.fc .fc-button-primary {
+  background-color: #3182ce !important;
+  border-color: #3182ce !important;
+  text-transform: capitalize !important;
+}
+
+.fc .fc-button-primary:hover {
+  background-color: #2b6cb0 !important;
+}
+

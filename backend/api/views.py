@@ -4,6 +4,7 @@ from django.contrib.auth.models import User
 from django.views.decorators.csrf import csrf_exempt
 from .models import FriendRequest
 import json
+from rest_framework.authtoken.models import Token
 
 def health(request):
     return JsonResponse({'status': 'ok'})
@@ -109,6 +110,7 @@ def login_view(request):
     if user is None:
         return JsonResponse({'error': 'Invalid credentials'}, status=401)
 
+    token, created = Token.objects.get_or_create(user=user)
     login(request, user)
-    return JsonResponse({'id': user.id, 'username': user.username})\
+    return JsonResponse({'token': token.key, 'id': user.id, 'username': user.username})
         

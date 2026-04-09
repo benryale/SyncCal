@@ -24,7 +24,7 @@ function NavBar({ user, onLogout, onLoginClick }) {
               {user.username[0].toUpperCase()}
             </Box>
             <Text fontSize="sm" color="gray.500">{user.username}</Text>
-            <Button size="sm" variant="outline" onClick={onLogout}>
+            <Button size="sm" variant="outline" color = 'gray.500' onClick={onLogout}>
               Sign out
             </Button>
           </>

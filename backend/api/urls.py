@@ -5,7 +5,7 @@ from events import views as event_views
 #setup api router
 router = DefaultRouter()
 router.register(r'categories',event_views.CategoryViewSet)
-router.register(r'events',event_views.EventViewSet)
+router.register(r'events',event_views.EventViewSet, basename='event') # We need to specify basename here because we have a custom get_queryset method in our EventViewSet that filters events based on the logged in user, so we can't rely on the default queryset to determine the basename for the router. By explicitly setting basename='event', we ensure that the router generates the correct URL patterns for our EventViewSet.
 urlpatterns = [
     path('health/', api_views.health),
     path('auth/register/', api_views.register),
