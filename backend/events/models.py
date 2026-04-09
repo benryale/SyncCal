@@ -18,6 +18,6 @@ class Event(models.Model):
     description = models.TextField(blank=True, default='')
     location = models.CharField(max_length=255, blank=True, default='')
     organizer = models.CharField(max_length=100, blank=True, default='')
-
+    shared_with = models.ManyToManyField('auth.User', related_name='events_shared_with_me', blank=True)
     def __str__(self):
         return self.title

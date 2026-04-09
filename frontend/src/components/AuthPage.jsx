@@ -35,18 +35,24 @@ function AuthPage({ onAuth }) {
     if (!res.ok) {
       setError(data.error)
     } else {
+      localStorage.setItem('token',data.token);
       onAuth(data)
     }
   }
 
   return (
-    <Box maxW="400px" mx="auto" mt="100px" p="8" borderWidth="1px" borderRadius="lg">
-      <Heading mb="6">{mode === 'login' ? 'Login' : 'Register'}</Heading>
+    // login box
+    <Box maxW="400px" mx="auto" mt="100px" p="10" borderRadius="xl" bg="white" boxShadow="2xl" borderWidth="1px" borderColor="gray.100">
+      <Heading mb="8" textAlign="center" color="gray.800" fontSize="2xl">{mode === 'login' ? 'Welcome Back' : 'Create Account'}</Heading>
 
       <form onSubmit={submit}>
         <VStack gap="4">
           <Input
             placeholder="Username"
+            bg="white"
+            color="black"
+            _placeholder={{ color: 'gray.400' }}
+            focusBorderColor="blue.500"
             value={username}
             onChange={e => setUsername(e.target.value)}
           />
@@ -55,29 +61,38 @@ function AuthPage({ onAuth }) {
             <Input
               placeholder="Email"
               value={email}
+              bg="white"
+              color="black" // black text
+              borderColor="gray.300" // gray border
+              focusBorderColor="black" // changes blue to black on focus
+              _placeholder={{ color: 'gray.400' }}
               onChange={e => setEmail(e.target.value)}
             />
           )}
-
-          <Input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-          />
+            <Input
+              type="password"
+              placeholder="Password"
+              value={password}
+              bg="white"
+              color="black"
+              borderColor="gray.300"
+              focusBorderColor="black" 
+              _placeholder={{ color: 'gray.400' }}
+              onChange={e => setPassword(e.target.value)}
+            />
 
           {error && <Text color="red.500">{error}</Text>}
 
-          <Button type="submit" width="100%" colorScheme="blue">
+          <Button type="submit" width="100%" colorScheme="blue" size="lg">
             {mode === 'login' ? 'Login' : 'Register'}
           </Button>
         </VStack>
       </form>
 
-      <Text mt="4" textAlign="center">
+      <Text mt="6" textAlign="center" color="gray.700" fontSize="sm">
         {mode === 'login'
-          ? <span>No account? <a href="#" onClick={() => setMode('register')}>Register</a></span>
-          : <span>Have an account? <a href="#" onClick={() => setMode('login')}>Login</a></span>
+          ? <span>No account? <a style={{color: '#3182ce', fontWeight: 'bold'}} href="#" onClick={() => setMode('register')}>Register</a></span>
+          : <span>Have an account? <a style={{color: '#3182ce', fontWeight: 'bold'}} href="#" onClick={() => setMode('login')}>Login</a></span>
         }
       </Text>
     </Box>

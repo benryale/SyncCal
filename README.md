@@ -38,6 +38,7 @@ python manage.py runserver
 cd frontend
 npm install
 npm install axios
+npm install @fullcalendar/timegrid
 npm run dev
 ```
 
