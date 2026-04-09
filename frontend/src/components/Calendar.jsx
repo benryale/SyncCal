@@ -31,7 +31,7 @@ const formatForInput = (dateObj) => {
     return new Date(dateObj.getTime() - (dateObj.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
   };
 
-const Calendar = () => {
+const Calendar = ({ visibleFriends = [] }) => {
   const [events, setEvents] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState({
@@ -46,20 +46,41 @@ const Calendar = () => {
   const [selectedEventId, setSelectedEventId] = useState(null);
 
   
-  // Fetch events on load
+  // Fetch events on load and when visible friends change
   useEffect(() => {
     fetchEvents();
-  }, []);
+  }, [visibleFriends]);
 
   const fetchEvents = async () => {
     try {
       const response = await axios.get('/api/events/', { withCredentials: true });
-      const formattedEvents = response.data.map(event => ({
+      let formattedEvents = response.data.map(event => ({
         id: event.id,
         title: event.title,
         start: event.start_date,
         end: event.end_date,
+        backgroundColor: '#3182ce',
+        borderColor: '#2c5282',
       }));
+
+      // Fetch friend events if any friends are selected
+      if (visibleFriends.length > 0) {
+        try {
+          const friendResponse = await axios.get(`/api/events/?owner_id__in=${visibleFriends.join(',')}`, { withCredentials: true });
+          const friendEvents = friendResponse.data.map(event => ({
+            id: `friend-${event.id}`,
+            title: `${event.title} (friend)`,
+            start: event.start_date,
+            end: event.end_date,
+            backgroundColor: '#ed8936',
+            borderColor: '#dd6b20',
+          }));
+          formattedEvents = [...formattedEvents, ...friendEvents];
+        } catch (error) {
+          console.log("Could not fetch friend events");
+        }
+      }
+
       setEvents(formattedEvents);
     } catch (error) {
       console.error("Error fetching events:", error);

@@ -7,6 +7,7 @@ import NavBar from './components/NavBar'
 function App() {
   const [user, setUser] = useState(null);
   const [page, setPage] = useState('calendar');
+  const [visibleFriends, setVisibleFriends] = useState([]);
   // Check memory the moment the app loads to see if we have a logged in user (e.g. after refresh)
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -30,6 +31,8 @@ function App() {
         user={user} 
         onLogout={handleLogout} 
         onLoginClick={() => setPage('login')}
+        visibleFriends={visibleFriends}
+        onVisibleFriendsChange={setVisibleFriends}
       />
       <Box p="6">
         {page === 'login' && !user && (
@@ -40,7 +43,7 @@ function App() {
             setPage('calendar'); 
           }} />
         )}
-        {page === 'calendar' && <Calendar />}
+        {page === 'calendar' && <Calendar visibleFriends={visibleFriends} />}
       </Box>
     </Box>
   )

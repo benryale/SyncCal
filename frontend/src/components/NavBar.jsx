@@ -1,9 +1,10 @@
 import { Box, Button, Text } from '@chakra-ui/react'
 import { CalendarSync } from 'lucide-react';
 import SearchBar from './SearchBar';
+import FriendList from './FriendList';
 
 
-function NavBar({ user, onLogout, onLoginClick }) {
+function NavBar({ user, onLogout, onLoginClick, visibleFriends, onVisibleFriendsChange }) {
   return (
     <Box bg="white" borderBottom="1px solid" borderColor="gray.100"
       px="6" h="56px" display="flex" alignItems="center" justifyContent="space-between">
@@ -16,6 +17,11 @@ function NavBar({ user, onLogout, onLoginClick }) {
       <SearchBar user={user} />
 
       <Box display="flex" alignItems="center" gap="3">
+        <FriendList 
+          user={user} 
+          visibleFriends={visibleFriends}
+          onVisibleFriendsChange={onVisibleFriendsChange}
+        />
         {user ? (
           <>
             <Box w="30px" h="30px" borderRadius="full" bg="blue.50"
