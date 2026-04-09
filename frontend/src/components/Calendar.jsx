@@ -4,6 +4,14 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import axios from 'axios';
 
+axios.interceptors.request.use(config => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Token ${token}`;
+  }
+  return config;
+});
+
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -39,7 +47,7 @@ const Calendar = () => {
 
   const fetchEvents = async () => {
     try {
-      const response = await axios.get('http://127.0.0.1:8000/api/events/');
+      const response = await axios.get('/api/events/', { withCredentials: true });
       const formattedEvents = response.data.map(event => ({
         id: event.id,
         title: event.title,
@@ -92,14 +100,14 @@ const Calendar = () => {
 
       if (selectedEventId) {
         // UPDATE EXISTING (PUT)
-        const response = await axios.put(`http://127.0.0.1:8000/api/events/${selectedEventId}/`, payload);
+        const response = await axios.put(`/api/events/${selectedEventId}/`, payload);
         const updatedEvent = response.data;
         setEvents(events.map(ev => ev.id === updatedEvent.id ? {
           id: updatedEvent.id, title: updatedEvent.title, start: updatedEvent.start_date, end: updatedEvent.end_date
         } : ev));
       } else {
         // CREATE NEW (POST) - This is your existing code
-        const response = await axios.post('http://127.0.0.1:8000/api/events/', payload);
+        const response = await axios.post('/api/events/', payload);
         const newEvent = response.data;
         setEvents([...events, {
           id: newEvent.id, title: newEvent.title, start: newEvent.start_date, end: newEvent.end_date
@@ -115,7 +123,7 @@ const Calendar = () => {
   const handleDelete = async () => {
     if (!window.confirm("Are you sure you want to delete this event?")) return;
     try {
-      await axios.delete(`http://127.0.0.1:8000/api/events/${selectedEventId}/`);
+      await axios.delete(`/api/events/${selectedEventId}/`);
       setEvents(events.filter(ev => String(ev.id) !== String(selectedEventId)));
       setShowModal(false);
     } catch (error) {

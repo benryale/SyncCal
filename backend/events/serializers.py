@@ -7,6 +7,7 @@ class CategorySerializer(serializers.ModelSerializer):
         fields = '__all__'
         
 class EventSerializer(serializers.ModelSerializer):
+    owner = serializers.ReadOnlyField(source='owner.username') # This will make the owner field read-only and display the username of the owner instead of the user ID
     class Meta:
         model = Event
         fields = '__all__'
