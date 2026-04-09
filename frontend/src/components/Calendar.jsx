@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
+import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import axios from 'axios';
+
 
 axios.interceptors.request.use(config => {
   const token = localStorage.getItem('token');
@@ -156,8 +158,13 @@ const Calendar = () => {
   return (
     <div style={{ position: 'relative', marginTop: '20px' }}>
       <FullCalendar
-        plugins={[dayGridPlugin, interactionPlugin]}
+        plugins={[dayGridPlugin,timeGridPlugin, interactionPlugin]}
         initialView="dayGridMonth"
+        headerToolbar={{
+          left: 'title',
+          center: 'dayGridMonth,timeGridWeek,timeGridDay',
+          right: 'prev,next today'
+        }}
         events={events}
         dateClick={handleDateClick}
         eventClick={handleEventClick}
