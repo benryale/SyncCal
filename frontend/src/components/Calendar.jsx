@@ -35,7 +35,11 @@ const Calendar = () => {
   const [formData, setFormData] = useState({
     title: '',
     start_date: '',
-    end_date: ''
+    end_date: '',
+    priority: 1,
+    description: '',
+    location: '',
+    shared_with: ''
   });
   const [selectedEventId, setSelectedEventId] = useState(null);
 
@@ -65,7 +69,11 @@ const Calendar = () => {
     setFormData({
       title: '',
       start_date: `${arg.dateStr}T10:00`, 
-      end_date: `${arg.dateStr}T11:00`
+      end_date: `${arg.dateStr}T11:00`,
+      priority: 1,
+      description: '',
+      location: '',
+      shared_with: ''
     });
     setShowModal(true);
   };
@@ -77,7 +85,12 @@ const Calendar = () => {
     setFormData({
       title: event.title,
       start_date: formatForInput(event.start),
-      end_date: formatForInput(event.end || event.start)
+      end_date: formatForInput(event.end || event.start),
+      priority: event.extendedProps.priority ||1 ,
+      description: event.extendedProps.description || '',
+      location: event.extendedProps.location || '',
+      shared_with: event.extendedProps.shared_with ? event.extendedProps.shared_with.join(', ') : ''
+
     });
     setShowModal(true);
   };
@@ -95,7 +108,7 @@ const Calendar = () => {
         ...formData,
         start_date: new Date(formData.start_date).toISOString(),
         end_date: new Date(formData.end_date).toISOString(),
-        priority: 1
+        shared_with: formData.shared_with.split(',').map(id => id.trim()).filter(id => id !== '') // Convert comma-separated string to array and remove empty entries
       };
 
       if (selectedEventId) {
@@ -103,14 +116,23 @@ const Calendar = () => {
         const response = await axios.put(`/api/events/${selectedEventId}/`, payload);
         const updatedEvent = response.data;
         setEvents(events.map(ev => ev.id === updatedEvent.id ? {
-          id: updatedEvent.id, title: updatedEvent.title, start: updatedEvent.start_date, end: updatedEvent.end_date
+          id: updatedEvent.id, title: updatedEvent.title, start: updatedEvent.start_date, end: updatedEvent.end_date,
+          priority: updatedEvent.priority,
+          description: updatedEvent.description,
+          location: updatedEvent.location,
+          shared_with: updatedEvent.shared_with
         } : ev));
       } else {
         // CREATE NEW (POST) - This is your existing code
         const response = await axios.post('/api/events/', payload);
         const newEvent = response.data;
         setEvents([...events, {
-          id: newEvent.id, title: newEvent.title, start: newEvent.start_date, end: newEvent.end_date
+          id: newEvent.id, title: newEvent.title, start: newEvent.start_date, end: newEvent.end_date,
+          priority: newEvent.priority,
+          description: newEvent.description,
+          location: newEvent.location,
+          shared_with: newEvent.shared_with
+
         }]);
       }
       setShowModal(false);
@@ -140,6 +162,8 @@ const Calendar = () => {
         dateClick={handleDateClick}
         eventClick={handleEventClick}
         height="75vh"
+        eventDisplay="block"
+        eventColor="#87bbd6"
       />
 
       <Dialog open={showModal} onOpenChange={setShowModal}>
@@ -186,6 +210,53 @@ const Calendar = () => {
                 onChange={handleInputChange}
                 required
               />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="location">Location</Label>
+              <Input
+                id="location"
+                name="location"
+                value={formData.location}
+                onChange={handleInputChange}
+                placeholder="Zoom, Office, etc."
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="description">Description</Label>
+              <Input
+                id="description"
+                name="description"
+                value={formData.description}
+                onChange={handleInputChange}
+                placeholder="Details about the meeting..."
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="priority">Priority (1-5)</Label>
+                <Input
+                  id="priority"
+                  type="number"
+                  name="priority"
+                  min="1"
+                  max="5"
+                  value={formData.priority}
+                  onChange={handleInputChange}
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="shared_with">Share with Friend IDs</Label>
+                <Input
+                  id="shared_with"
+                  name="shared_with"
+                  value={formData.shared_with}
+                  onChange={handleInputChange}
+                  placeholder="e.g. 2, 5"
+                />
+              </div>
             </div>
 
             <DialogFooter className="mt-2 sm:justify-between">
