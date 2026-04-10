@@ -109,7 +109,14 @@ const Calendar = () => {
   };
 
   return (
-    <div className="relative mt-5">
+    <div className="relative">
+      <div className="mb-5 flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold text-[#1a2744]">Calendar</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Tap any date to add something</p>
+        </div>
+      </div>
+
       <FullCalendar
         plugins={[dayGridPlugin, interactionPlugin]}
         initialView="dayGridMonth"
@@ -135,7 +142,7 @@ const Calendar = () => {
               New event
             </DialogTitle>
             <DialogDescription className="text-sm text-muted-foreground">
-              Add an event to your calendar.
+              Block out some time on your calendar.
             </DialogDescription>
           </DialogHeader>
 
@@ -148,7 +155,7 @@ const Calendar = () => {
                   name="title"
                   value={formData.title}
                   onChange={handleInputChange}
-                  placeholder="Weekly sync, office hours, project review"
+                  placeholder="Study group, office hours, dinner plans"
                   className="h-10 bg-muted/50"
                   required
                 />
