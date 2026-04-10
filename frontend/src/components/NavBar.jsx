@@ -1,12 +1,12 @@
 import { CalendarSync } from 'lucide-react';
 import { Button } from "@/components/ui/button"
 
-function NavBar({ user, onLogout, onLoginClick }) {
+function NavBar({ user, onLogout, onLoginClick, onLogoClick }) {
   return (
     <nav className="h-16 border-b border-border bg-white px-8 flex items-center justify-between">
       <button
         className="flex items-center gap-2.5 cursor-pointer hover:opacity-80 transition-opacity"
-        onClick={() => window.location.href = '/'}
+        onClick={onLogoClick}
       >
         <CalendarSync size={24} className="text-[#1a2744]" />
         <span className="text-lg font-medium text-[#1a2744]">SyncCal</span>
@@ -24,9 +24,17 @@ function NavBar({ user, onLogout, onLoginClick }) {
             </Button>
           </>
         ) : (
-          <Button onClick={onLoginClick}>
-            Sign In
-          </Button>
+          <>
+            <button
+              className="text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
+              onClick={onLoginClick}
+            >
+              Log in
+            </button>
+            <Button onClick={onLoginClick}>
+              Sign Up
+            </Button>
+          </>
         )}
       </div>
     </nav>
