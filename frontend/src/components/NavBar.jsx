@@ -1,7 +1,7 @@
 import { CalendarSync } from 'lucide-react';
 import { Button } from "@/components/ui/button"
 
-function NavBar({ user, onLogout, onLoginClick, onLogoClick }) {
+function NavBar({ user, onLogout, onLoginClick, onLogoClick, visibleFriends, onVisibleFriendsChange }) {
   return (
     <nav className="h-16 border-b border-border bg-white px-8 flex items-center justify-between">
       <button

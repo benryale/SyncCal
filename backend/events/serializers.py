@@ -7,6 +7,7 @@ class CategorySerializer(serializers.ModelSerializer):
         fields = '__all__'
         
 class EventSerializer(serializers.ModelSerializer):
+    organizer = serializers.ReadOnlyField(source='organizer.username')
     class Meta:
         model = Event
         fields = '__all__'
