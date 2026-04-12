@@ -38,6 +38,8 @@ function AuthPage({ onAuth }) {
     if (!res.ok) {
       setError(data.error)
     } else {
+      // save the token so future API calls are authenticated
+      localStorage.setItem('token', data.token)
       onAuth(data)
     }
   }

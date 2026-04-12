@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react'
-import { Box, Button, Text } from '@chakra-ui/react'
 import { Users, Check, X } from 'lucide-react'
 import axios from 'axios'
 
@@ -10,14 +9,14 @@ function FriendList({ user, visibleFriends = [], onVisibleFriendsChange = () => 
   const [friends, setFriends] = useState([])
   const containerRef = useRef(null)
 
-  // Fetch pending requests and friends whenever dropdown opens
+  // refresh both lists whenever the dropdown opens
   useEffect(() => {
     if (!user || !open) return
     fetchPending()
     fetchFriends()
   }, [user, open])
 
-  // Poll for new requests every 30 seconds while logged in
+  // poll for new friend requests every 30 seconds while logged in
   useEffect(() => {
     if (!user) return
     fetchPending()
@@ -25,7 +24,7 @@ function FriendList({ user, visibleFriends = [], onVisibleFriendsChange = () => 
     return () => clearInterval(interval)
   }, [user])
 
-  // Close dropdown on outside click
+  // close dropdown on outside click
   useEffect(() => {
     function handleClick(e) {
       if (containerRef.current && !containerRef.current.contains(e.target)) {
@@ -50,12 +49,13 @@ function FriendList({ user, visibleFriends = [], onVisibleFriendsChange = () => 
     } catch { /* ignore */ }
   }
 
+  // accept or decline a pending friend request
   async function respond(requestId, action) {
     try {
       await axios.post(`/api/friends/request/${requestId}/respond/`, { action })
-      // Remove from pending list
+      // remove the request from the list immediately
       setPendingRequests(prev => prev.filter(r => r.id !== requestId))
-      // If accepted, refresh friends
+      // if accepted, refresh friends so the new one shows up
       if (action === 'accept') fetchFriends()
     } catch { /* ignore */ }
   }
@@ -63,177 +63,103 @@ function FriendList({ user, visibleFriends = [], onVisibleFriendsChange = () => 
   if (!user) return null
 
   return (
-    <Box ref={containerRef} position="relative">
-      {/* Friend icon with badge */}
-      <Box
-        as="button"
-        position="relative"
-        p="1"
-        borderRadius="md"
-        _hover={{ bg: 'gray.100' }}
+    <div ref={containerRef} className="relative">
+      {/* friend icon with badge that shows the number of pending requests */}
+      <button
+        type="button"
+        className="relative flex items-center rounded-md p-1 hover:bg-muted cursor-pointer"
         onClick={() => setOpen(prev => !prev)}
-        cursor="pointer"
-        display="flex"
-        alignItems="center"
       >
-        <Users size={20} color="#4A5568" />
+        <Users size={20} className="text-muted-foreground" />
         {pendingRequests.length > 0 && (
-          <Box
-            position="absolute"
-            top="-2px"
-            right="-2px"
-            bg="red.500"
-            color="white"
-            fontSize="10px"
-            fontWeight="700"
-            borderRadius="full"
-            w="16px"
-            h="16px"
-            display="flex"
-            alignItems="center"
-            justifyContent="center"
-            lineHeight="1"
-          >
+          <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold leading-none text-white">
             {pendingRequests.length}
-          </Box>
+          </span>
         )}
-      </Box>
+      </button>
 
-      {/* Dropdown */}
+      {/* dropdown panel with tabs for requests and friends */}
       {open && (
-        <Box
-          position="absolute"
-          top="calc(100% + 8px)"
-          right="0"
-          w="300px"
-          bg="white"
-          border="1px solid"
-          borderColor="gray.200"
-          borderRadius="lg"
-          boxShadow="lg"
-          zIndex="dropdown"
-          overflow="hidden"
-        >
-          {/* Tabs */}
-          <Box display="flex" borderBottom="1px solid" borderColor="gray.100">
-            <Box
-              as="button"
-              flex="1"
-              py="2"
-              fontSize="sm"
-              fontWeight={tab === 'requests' ? '600' : '400'}
-              color={tab === 'requests' ? 'blue.600' : 'gray.500'}
-              borderBottom={tab === 'requests' ? '2px solid' : '2px solid transparent'}
-              borderColor={tab === 'requests' ? 'blue.600' : 'transparent'}
-              bg="transparent"
-              cursor="pointer"
+        <div className="absolute right-0 top-[calc(100%+8px)] z-50 w-[300px] overflow-hidden rounded-lg border border-border bg-white shadow-lg">
+          {/* tab switcher */}
+          <div className="flex border-b border-border">
+            <button
+              type="button"
+              className={`flex-1 cursor-pointer border-b-2 bg-transparent py-2 text-sm ${
+                tab === 'requests'
+                  ? 'border-blue-600 font-semibold text-blue-600'
+                  : 'border-transparent font-normal text-muted-foreground'
+              }`}
               onClick={() => setTab('requests')}
             >
               Requests {pendingRequests.length > 0 && `(${pendingRequests.length})`}
-            </Box>
-            <Box
-              as="button"
-              flex="1"
-              py="2"
-              fontSize="sm"
-              fontWeight={tab === 'friends' ? '600' : '400'}
-              color={tab === 'friends' ? 'blue.600' : 'gray.500'}
-              borderBottom={tab === 'friends' ? '2px solid' : '2px solid transparent'}
-              borderColor={tab === 'friends' ? 'blue.600' : 'transparent'}
-              bg="transparent"
-              cursor="pointer"
+            </button>
+            <button
+              type="button"
+              className={`flex-1 cursor-pointer border-b-2 bg-transparent py-2 text-sm ${
+                tab === 'friends'
+                  ? 'border-blue-600 font-semibold text-blue-600'
+                  : 'border-transparent font-normal text-muted-foreground'
+              }`}
               onClick={() => setTab('friends')}
             >
               Friends {friends.length > 0 && `(${friends.length})`}
-            </Box>
-          </Box>
+            </button>
+          </div>
 
-          {/* Content */}
-          <Box maxH="280px" overflowY="auto">
+          {/* scrollable content area */}
+          <div className="max-h-72 overflow-y-auto">
             {tab === 'requests' && (
               pendingRequests.length === 0 ? (
-                <Box px="4" py="6" textAlign="center">
-                  <Text fontSize="sm" color="gray.400">No pending requests</Text>
-                </Box>
+                <div className="px-4 py-6 text-center">
+                  <span className="text-sm text-muted-foreground">No pending requests</span>
+                </div>
               ) : (
                 pendingRequests.map(req => (
-                  <Box
+                  <div
                     key={req.id}
-                    px="3"
-                    py="2.5"
-                    display="flex"
-                    alignItems="center"
-                    gap="2"
-                    _hover={{ bg: 'gray.50' }}
+                    className="flex items-center gap-2 px-3 py-2.5 hover:bg-muted/50"
                   >
-                    <Box
-                      w="30px"
-                      h="30px"
-                      borderRadius="full"
-                      bg="blue.50"
-                      display="flex"
-                      alignItems="center"
-                      justifyContent="center"
-                      fontSize="xs"
-                      fontWeight="600"
-                      color="blue.700"
-                      flexShrink="0"
-                    >
+                    <div className="flex h-[30px] w-[30px] flex-shrink-0 items-center justify-center rounded-full bg-blue-50 text-xs font-semibold text-blue-700">
                       {req.from_username[0].toUpperCase()}
-                    </Box>
-                    <Box flex="1">
-                      <Text fontSize="sm" fontWeight="500" color="gray.800">
-                        {req.from_username}
-                      </Text>
-                      <Text fontSize="xs" color="gray.400">
-                        wants to be your friend
-                      </Text>
-                    </Box>
-                    <Box display="flex" gap="1">
-                      <Button
-                        size="xs"
-                        bg="green.500"
-                        color="white"
-                        _hover={{ bg: 'green.600' }}
-                        px="2"
-                        minW="auto"
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-foreground">{req.from_username}</p>
+                      <p className="text-xs text-muted-foreground">wants to be your friend</p>
+                    </div>
+                    <div className="flex gap-1">
+                      <button
+                        type="button"
+                        className="rounded-md bg-green-500 px-2 py-1 text-white hover:bg-green-600 cursor-pointer"
                         onClick={() => respond(req.id, 'accept')}
                       >
                         <Check size={14} />
-                      </Button>
-                      <Button
-                        size="xs"
-                        bg="red.500"
-                        color="white"
-                        _hover={{ bg: 'red.600' }}
-                        px="2"
-                        minW="auto"
+                      </button>
+                      <button
+                        type="button"
+                        className="rounded-md bg-red-500 px-2 py-1 text-white hover:bg-red-600 cursor-pointer"
                         onClick={() => respond(req.id, 'decline')}
                       >
                         <X size={14} />
-                      </Button>
-                    </Box>
-                  </Box>
+                      </button>
+                    </div>
+                  </div>
                 ))
               )
             )}
 
             {tab === 'friends' && (
               friends.length === 0 ? (
-                <Box px="4" py="6" textAlign="center">
-                  <Text fontSize="sm" color="gray.400">No friends yet</Text>
-                </Box>
+                <div className="px-4 py-6 text-center">
+                  <span className="text-sm text-muted-foreground">No friends yet</span>
+                </div>
               ) : (
                 friends.map(f => (
-                  <Box
+                  <div
                     key={f.id}
-                    px="3"
-                    py="2.5"
-                    display="flex"
-                    alignItems="center"
-                    gap="2"
-                    _hover={{ bg: 'gray.50' }}
+                    className="flex items-center gap-2 px-3 py-2.5 hover:bg-muted/50"
                   >
+                    {/* checkbox toggles whether this friend's events show on the calendar */}
                     <input
                       type="checkbox"
                       checked={visibleFriends.includes(f.id)}
@@ -244,34 +170,20 @@ function FriendList({ user, visibleFriends = [], onVisibleFriendsChange = () => 
                           onVisibleFriendsChange(visibleFriends.filter(id => id !== f.id))
                         }
                       }}
-                      style={{ cursor: 'pointer', width: '16px', height: '16px' }}
+                      className="h-4 w-4 cursor-pointer"
                     />
-                    <Box
-                      w="30px"
-                      h="30px"
-                      borderRadius="full"
-                      bg="blue.50"
-                      display="flex"
-                      alignItems="center"
-                      justifyContent="center"
-                      fontSize="xs"
-                      fontWeight="600"
-                      color="blue.700"
-                      flexShrink="0"
-                    >
+                    <div className="flex h-[30px] w-[30px] flex-shrink-0 items-center justify-center rounded-full bg-blue-50 text-xs font-semibold text-blue-700">
                       {f.username[0].toUpperCase()}
-                    </Box>
-                    <Text fontSize="sm" fontWeight="500" color="gray.800">
-                      {f.username}
-                    </Text>
-                  </Box>
+                    </div>
+                    <p className="text-sm font-medium text-foreground">{f.username}</p>
+                  </div>
                 ))
               )
             )}
-          </Box>
-        </Box>
+          </div>
+        </div>
       )}
-    </Box>
+    </div>
   )
 }
 
