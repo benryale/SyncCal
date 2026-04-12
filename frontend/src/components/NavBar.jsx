@@ -1,5 +1,7 @@
 import { CalendarSync } from 'lucide-react';
 import { Button } from "@/components/ui/button"
+import SearchBar from './SearchBar';
+import FriendList from './FriendList';
 
 function NavBar({ user, onLogout, onLoginClick, onLogoClick, visibleFriends, onVisibleFriendsChange }) {
   return (
@@ -12,9 +14,18 @@ function NavBar({ user, onLogout, onLoginClick, onLogoClick, visibleFriends, onV
         <span className="text-lg font-medium text-[#1a2744]">SyncCal</span>
       </button>
 
+      {/* search bar shows up in the middle when the user is logged in */}
+      {user && <SearchBar user={user} />}
+
       <div className="flex items-center gap-4">
         {user ? (
           <>
+            {/* friend list dropdown for managing requests and friend visibility */}
+            <FriendList
+              user={user}
+              visibleFriends={visibleFriends}
+              onVisibleFriendsChange={onVisibleFriendsChange}
+            />
             <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-xs font-medium text-blue-700">
               {user.username[0].toUpperCase()}
             </div>
