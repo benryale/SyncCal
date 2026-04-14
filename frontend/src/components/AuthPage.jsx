@@ -1,5 +1,8 @@
 import { useState } from 'react'
-import { Box, Button, Input, Heading, Text, VStack } from '@chakra-ui/react'
+import { CalendarSync } from 'lucide-react'
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 
 function AuthPage({ onAuth }) {
   const [mode, setMode] = useState('login')
@@ -35,67 +38,79 @@ function AuthPage({ onAuth }) {
     if (!res.ok) {
       setError(data.error)
     } else {
-      localStorage.setItem('token',data.token);
+      // save the token so future API calls are authenticated
+      localStorage.setItem('token', data.token)
       onAuth(data)
     }
   }
 
   return (
-    // login box
-    <Box maxW="400px" mx="auto" mt="100px" p="10" borderRadius="xl" bg="white" boxShadow="2xl" borderWidth="1px" borderColor="gray.100">
-      <Heading mb="8" textAlign="center" color="gray.800" fontSize="2xl">{mode === 'login' ? 'Welcome Back' : 'Create Account'}</Heading>
+    <div className="mx-auto mt-20 max-w-sm">
+      <div className="mb-8 text-center">
+        <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
+          <CalendarSync className="size-5 text-[#1a2744]" />
+        </div>
+        <h2 className="text-xl font-semibold text-foreground">
+          {mode === 'login' ? 'Welcome back' : 'Create your account'}
+        </h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {mode === 'login' ? 'Pick up where you left off' : 'Set up your account in just a few seconds'}
+        </p>
+      </div>
 
-      <form onSubmit={submit}>
-        <VStack gap="4">
-          <Input
-            placeholder="Username"
-            bg="white"
-            color="black"
-            _placeholder={{ color: 'gray.400' }}
-            focusBorderColor="blue.500"
-            value={username}
-            onChange={e => setUsername(e.target.value)}
-          />
+      <div className="rounded-lg border border-border bg-white p-6">
+        <form onSubmit={submit}>
+          <div className="flex flex-col gap-4">
+            <div className="grid gap-1.5">
+              <Label htmlFor="username">Username</Label>
+              <Input
+                id="username"
+                placeholder="Enter your username"
+                value={username}
+                onChange={e => setUsername(e.target.value)}
+              />
+            </div>
 
-          {mode === 'register' && (
-            <Input
-              placeholder="Email"
-              value={email}
-              bg="white"
-              color="black" // black text
-              borderColor="gray.300" // gray border
-              focusBorderColor="black" // changes blue to black on focus
-              _placeholder={{ color: 'gray.400' }}
-              onChange={e => setEmail(e.target.value)}
-            />
-          )}
-            <Input
-              type="password"
-              placeholder="Password"
-              value={password}
-              bg="white"
-              color="black"
-              borderColor="gray.300"
-              focusBorderColor="black" 
-              _placeholder={{ color: 'gray.400' }}
-              onChange={e => setPassword(e.target.value)}
-            />
+            {mode === 'register' && (
+              <div className="grid gap-1.5">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                />
+              </div>
+            )}
 
-          {error && <Text color="red.500">{error}</Text>}
+            <div className="grid gap-1.5">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+              />
+            </div>
 
-          <Button type="submit" width="100%" colorScheme="blue" size="lg">
-            {mode === 'login' ? 'Login' : 'Register'}
-          </Button>
-        </VStack>
-      </form>
+            {error && <p className="text-sm text-destructive">{error}</p>}
 
-      <Text mt="6" textAlign="center" color="gray.700" fontSize="sm">
+            <Button type="submit" className="w-full">
+              {mode === 'login' ? 'Sign in' : 'Create account'}
+            </Button>
+          </div>
+        </form>
+      </div>
+
+      <p className="mt-4 text-center text-sm text-muted-foreground">
         {mode === 'login'
-          ? <span>No account? <a style={{color: '#3182ce', fontWeight: 'bold'}} href="#" onClick={() => setMode('register')}>Register</a></span>
-          : <span>Have an account? <a style={{color: '#3182ce', fontWeight: 'bold'}} href="#" onClick={() => setMode('login')}>Login</a></span>
+          ? <span>No account? <button className="text-foreground hover:underline font-medium cursor-pointer" onClick={() => setMode('register')}>Register</button></span>
+          : <span>Have an account? <button className="text-foreground hover:underline font-medium cursor-pointer" onClick={() => setMode('login')}>Sign in</button></span>
         }
-      </Text>
-    </Box>
+      </p>
+    </div>
   )
 }
 

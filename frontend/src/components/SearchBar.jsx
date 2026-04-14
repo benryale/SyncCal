@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react'
-import { Box, Text, Input, Button } from '@chakra-ui/react'
 import { Search, UserPlus, UserCheck, Clock } from 'lucide-react'
 import axios from 'axios'
 
@@ -8,11 +7,12 @@ function SearchBar({ user }) {
   const [results, setResults] = useState([])
   const [loading, setLoading] = useState(false)
   const [open, setOpen] = useState(false)
-  // Track pending request state per user id: 'none' | 'pending' | 'accepted'
+  // tracks per-user request state: 'none' | 'pending' | 'accepted'
   const [requestStates, setRequestStates] = useState({})
   const containerRef = useRef(null)
   const debounceRef = useRef(null)
 
+  // debounce the search request so we don't hammer the API on every keystroke
   useEffect(() => {
     if (!query.trim()) {
       setResults([])
@@ -26,7 +26,7 @@ function SearchBar({ user }) {
       try {
         const res = await axios.get(`/api/users/search/?q=${encodeURIComponent(query)}`)
         setResults(res.data)
-        // Seed requestStates from server-provided friend_status
+        // seed friend states from what the server tells us about each user
         const states = {}
         res.data.forEach(u => { states[u.id] = u.friend_status ?? 'none' })
         setRequestStates(prev => ({ ...prev, ...states }))
@@ -41,7 +41,7 @@ function SearchBar({ user }) {
     return () => clearTimeout(debounceRef.current)
   }, [query])
 
-  // Close dropdown when clicking outside
+  // close dropdown when clicking outside the search area
   useEffect(() => {
     function handleClickOutside(e) {
       if (containerRef.current && !containerRef.current.contains(e.target)) {
@@ -52,142 +52,99 @@ function SearchBar({ user }) {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
+  // optimistically mark the request as pending so the UI updates instantly
   async function handleAddFriend(toUserId) {
     setRequestStates(prev => ({ ...prev, [toUserId]: 'pending' }))
     try {
       await axios.post('/api/friends/request/', { to_user_id: toUserId })
     } catch {
-      // Revert on error
+      // revert on failure so the button goes back to "Add"
       setRequestStates(prev => ({ ...prev, [toUserId]: 'none' }))
     }
   }
 
+  // small helper to render the right friend button based on status
   function FriendButton({ userId }) {
     const status = requestStates[userId] ?? 'none'
     if (!user) return null
 
     if (status === 'accepted') {
       return (
-        <Button size="xs" variant="ghost" colorScheme="green" disabled px="2" gap="1">
+        <button
+          disabled
+          className="flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-green-700"
+        >
           <UserCheck size={13} /> Friends
-        </Button>
+        </button>
       )
     }
     if (status === 'pending') {
       return (
-        <Button size="xs" variant="ghost" colorScheme="gray" disabled px="2" gap="1">
+        <button
+          disabled
+          className="flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-muted-foreground"
+        >
           <Clock size={13} /> Pending
-        </Button>
+        </button>
       )
     }
     return (
-      <Button
-        size="xs"
-        variant="outline"
-        colorScheme="blue"
-        px="2"
-        gap="1"
+      <button
         onClick={(e) => { e.stopPropagation(); handleAddFriend(userId) }}
+        className="flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs font-medium text-foreground hover:bg-muted cursor-pointer"
       >
         <UserPlus size={13} /> Add
-      </Button>
+      </button>
     )
   }
 
   return (
-    <Box ref={containerRef} position="relative" w="280px">
-      <Box position="relative">
-        <Box
-          position="absolute"
-          left="10px"
-          top="50%"
-          transform="translateY(-50%)"
-          pointerEvents="none"
-          color="gray.400"
-        >
+    <div ref={containerRef} className="relative w-72">
+      <div className="relative">
+        <div className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground">
           <Search size={15} />
-        </Box>
-        <Input
+        </div>
+        <input
           placeholder="Search users..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => results.length > 0 && setOpen(true)}
-          size="sm"
-          pl="32px"
-          bg="gray.50"
-          border="1px solid"
-          borderColor="gray.200"
-          borderRadius="md"
-          _focus={{ borderColor: 'blue.400', bg: 'white' }}
+          className="w-full rounded-md border border-border bg-muted/50 py-1.5 pl-8 pr-3 text-sm focus:border-blue-400 focus:bg-white focus:outline-none"
         />
-      </Box>
+      </div>
 
       {open && (
-        <Box
-          position="absolute"
-          top="calc(100% + 4px)"
-          left="0"
-          right="0"
-          bg="white"
-          border="1px solid"
-          borderColor="gray.200"
-          borderRadius="md"
-          boxShadow="md"
-          zIndex="dropdown"
-          maxH="240px"
-          overflowY="auto"
-        >
+        <div className="absolute left-0 right-0 top-[calc(100%+4px)] z-50 max-h-60 overflow-y-auto rounded-md border border-border bg-white shadow-md">
           {loading ? (
-            <Box px="3" py="2">
-              <Text fontSize="sm" color="gray.400">Searching...</Text>
-            </Box>
+            <div className="px-3 py-2">
+              <span className="text-sm text-muted-foreground">Searching...</span>
+            </div>
           ) : results.length === 0 ? (
-            <Box px="3" py="2">
-              <Text fontSize="sm" color="gray.400">No users found</Text>
-            </Box>
+            <div className="px-3 py-2">
+              <span className="text-sm text-muted-foreground">No users found</span>
+            </div>
           ) : (
             results.map((u) => (
-              <Box
+              <div
                 key={u.id}
-                px="3"
-                py="2"
-                display="flex"
-                alignItems="center"
-                gap="2"
-                _hover={{ bg: 'gray.50' }}
+                className="flex items-center gap-2 px-3 py-2 hover:bg-muted/50"
               >
-                <Box
-                  w="26px"
-                  h="26px"
-                  borderRadius="full"
-                  bg="blue.50"
-                  display="flex"
-                  alignItems="center"
-                  justifyContent="center"
-                  fontSize="xs"
-                  fontWeight="600"
-                  color="blue.700"
-                  flexShrink="0"
-                >
+                <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-blue-50 text-xs font-semibold text-blue-700">
                   {u.username[0].toUpperCase()}
-                </Box>
-                <Box flex="1">
-                  <Text fontSize="sm" fontWeight="500" color="gray.800">
-                    {u.username}
-                  </Text>
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-foreground">{u.username}</p>
                   {u.email && (
-                    <Text fontSize="xs" color="gray.400">
-                      {u.email}
-                    </Text>
+                    <p className="text-xs text-muted-foreground">{u.email}</p>
                   )}
-                </Box>
+                </div>
                 <FriendButton userId={u.id} />
-              </Box>
+              </div>
             ))
           )}
-        </Box>
+        </div>
       )}
-    </Box>
+    </div>
   )
 }
 
