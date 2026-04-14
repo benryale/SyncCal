@@ -15,5 +15,9 @@ urlpatterns = [
     path('friends/request/<int:request_id>/respond/', api_views.respond_to_friend_request),
     path('friends/requests/', api_views.list_friend_requests),
     path('friends/', api_views.list_friends),
+    # event invite endpoints
+    path('events/invites/', event_views.list_event_invites),
+    path('events/invites/send/', event_views.send_event_invite),
+    path('events/invites/<int:invite_id>/respond/', event_views.respond_to_event_invite),
     path('',include(router.urls)), # This gives React access to GET, POST, PUT/DELETE /api/events
 ]

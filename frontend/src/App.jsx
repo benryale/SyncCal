@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react'
-import { Box } from '@chakra-ui/react'
 import AuthPage from './components/AuthPage'
 import Calendar from './components/Calendar'
+import LandingPage from './components/LandingPage'
 import NavBar from './components/NavBar'
 
 function App() {
   const [user, setUser] = useState(null);
-  const [page, setPage] = useState('calendar');
+  const [page, setPage] = useState('landing');
   const [visibleFriends, setVisibleFriends] = useState([]);
-  // Check memory the moment the app loads to see if we have a logged in user (e.g. after refresh)
+
+  // check localStorage on load so we stay logged in after a refresh
   useEffect(() => {
     const token = localStorage.getItem('token');
     const savedUsername = localStorage.getItem('username');
@@ -18,34 +19,42 @@ function App() {
     }
   }, []);
 
-  //properly handle logout now 
+  // clear out stored credentials on logout
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('username');
     setUser(null);
-    setPage('calendar');
-  }
+    setPage('landing');
+  };
+
   return (
-    <Box minH="100vh" bg="gray.50">
-      <NavBar 
-        user={user} 
-        onLogout={handleLogout} 
+    <div className="min-h-screen bg-background">
+      <NavBar
+        user={user}
+        onLogout={handleLogout}
         onLoginClick={() => setPage('login')}
+        onLogoClick={() => setPage('landing')}
         visibleFriends={visibleFriends}
         onVisibleFriendsChange={setVisibleFriends}
       />
-      <Box p="6">
-        {page === 'login' && !user && (
-          <AuthPage onAuth={(data) => { 
-            setUser(data); 
-            // save the username to memory so the NavBar can remember it on refresh!
+      {page === 'landing' && (
+        <LandingPage onGetStarted={() => setPage('calendar')} />
+      )}
+      {page === 'login' && !user && (
+        <div className="px-6 py-6">
+          <AuthPage onAuth={(data) => {
+            setUser(data);
             if (data.username) localStorage.setItem('username', data.username);
-            setPage('calendar'); 
+            setPage('calendar');
           }} />
-        )}
-        {page === 'calendar' && <Calendar visibleFriends={visibleFriends} />}
-      </Box>
-    </Box>
+        </div>
+      )}
+      {page === 'calendar' && (
+        <div className="px-6 py-6">
+          <Calendar visibleFriends={visibleFriends} />
+        </div>
+      )}
+    </div>
   )
 }
 
