@@ -17,7 +17,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 
-// attach auth token to every request so the backend knows who we are
+// attach the auth token to every API call
 axios.interceptors.request.use(config => {
   const token = localStorage.getItem('token');
   if (token) {
@@ -26,7 +26,7 @@ axios.interceptors.request.use(config => {
   return config;
 });
 
-// converts a Date object to the format datetime-local inputs expect
+// formats a Date for the datetime-local input
 const formatForInput = (dateObj) => {
   if (!dateObj) return '';
   return new Date(dateObj.getTime() - (dateObj.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
@@ -49,7 +49,7 @@ const Calendar = ({ visibleFriends = [] }) => {
   const [formData, setFormData] = useState(initialFormData);
   const [selectedEventId, setSelectedEventId] = useState(null);
 
-  // pull events whenever the component loads or visible friends change
+  // refetch when visible friends change so we pick up their events too
   useEffect(() => {
     fetchEvents();
   }, [visibleFriends]);
@@ -64,7 +64,7 @@ const Calendar = ({ visibleFriends = [] }) => {
         end: event.end_date,
       }));
 
-      // if we have friends toggled on, grab their events too
+      // also pull events for any friends we've toggled visible
       if (visibleFriends.length > 0) {
         try {
           const friendResponse = await axios.get(`/api/events/?owner_id__in=${visibleFriends.join(',')}`, { withCredentials: true });
@@ -93,7 +93,7 @@ const Calendar = ({ visibleFriends = [] }) => {
     setSelectedEventId(null);
   };
 
-  // clicking an empty date opens the modal for a new event
+  // empty date click -> open the modal in create mode
   const handleDateClick = (arg) => {
     setSelectedEventId(null);
     setFormData({
@@ -104,7 +104,7 @@ const Calendar = ({ visibleFriends = [] }) => {
     setShowModal(true);
   };
 
-  // clicking an existing event opens the modal pre-filled for editing
+  // existing event click -> open the modal pre-filled for editing
   const handleEventClick = (info) => {
     const event = info.event;
     setSelectedEventId(event.id);
@@ -136,7 +136,7 @@ const Calendar = ({ visibleFriends = [] }) => {
   const isFormIncomplete = !formData.title.trim() || !formData.start_date || !formData.end_date;
   const formError = hasInvalidRange ? 'End time must be after the start time.' : '';
 
-  // handles both creating new events and updating existing ones
+  // create or update depending on whether we have a selectedEventId
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -155,7 +155,7 @@ const Calendar = ({ visibleFriends = [] }) => {
       };
 
       if (selectedEventId) {
-        // updating an existing event
+        // editing an existing event
         const response = await axios.put(`/api/events/${selectedEventId}/`, payload);
         const updatedEvent = response.data;
         setEvents(events.map(ev => ev.id === updatedEvent.id ? {
@@ -165,7 +165,7 @@ const Calendar = ({ visibleFriends = [] }) => {
           end: updatedEvent.end_date,
         } : ev));
       } else {
-        // creating a brand new event
+        // creating a new event
         const response = await axios.post('/api/events/', payload);
         const newEvent = response.data;
         setEvents([...events, {
@@ -183,7 +183,7 @@ const Calendar = ({ visibleFriends = [] }) => {
     }
   };
 
-  // deletes the event we're currently looking at
+  // remove the currently selected event
   const handleDelete = async () => {
     if (!window.confirm("Are you sure you want to delete this event?")) return;
     try {
