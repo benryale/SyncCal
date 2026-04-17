@@ -179,10 +179,11 @@ def register(request):
 
     # Create new user with hashed password (Django handles hashing automatically)
     user = User.objects.create_user(username=username, email=email, password=password)
+    token, created = Token.objects.get_or_create(user=user)
     # Log in the user immediately after registration (create session)
     login(request, user)
     # Return user ID and username to frontend (status 201 = Created)
-    return JsonResponse({'id': user.id, 'username': user.username}, status=201)
+    return JsonResponse({'token': token.key,'id': user.id, 'username': user.username}, status=201)
 
 @csrf_exempt
 def login_view(request):
