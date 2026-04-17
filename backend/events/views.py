@@ -26,7 +26,27 @@ class EventViewSet(viewsets.ModelViewSet):
         if user.is_anonymous:
             return Event.objects.none()
 
-        # show events the user owns or has accepted an invite to
+        # if owner_id__in is provided, return events owned by those friends
+        owner_ids = self.request.query_params.get('owner_id__in')
+        if owner_ids:
+            friend_ids = [int(fid) for fid in owner_ids.split(',') if fid.strip()]
+
+            # only allow viewing events of accepted friends
+            accepted_friends = FriendRequest.objects.filter(
+                (Q(from_user=user) | Q(to_user=user)),
+                status='accepted'
+            )
+            valid_friend_ids = set()
+            for fr in accepted_friends:
+                if fr.from_user == user:
+                    valid_friend_ids.add(fr.to_user_id)
+                else:
+                    valid_friend_ids.add(fr.from_user_id)
+
+            allowed_ids = [fid for fid in friend_ids if fid in valid_friend_ids]
+            return Event.objects.filter(organizer_id__in=allowed_ids).distinct()
+
+        # default: show events the user owns or has accepted an invite to
         accepted_event_ids = EventInvite.objects.filter(
             user=user, status='accepted'
         ).values_list('event_id', flat=True)
