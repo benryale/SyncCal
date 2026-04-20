@@ -3,6 +3,7 @@ import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
+import {  Bell, Check, X } from 'lucide-react';
 import axios from 'axios';
 import { CalendarDays, Clock3, LoaderCircle } from 'lucide-react';
 
@@ -48,10 +49,13 @@ const Calendar = ({ visibleFriends = [] }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState(initialFormData);
   const [selectedEventId, setSelectedEventId] = useState(null);
+  const [invites, setInvites] = useState([]);
+  const [showInvitesList, setShowInvitesList] = useState(false);
 
   // pull events whenever the component loads or visible friends change
   useEffect(() => {
     fetchEvents();
+    fetchInvites();
   }, [visibleFriends]);
 
   const fetchEvents = async () => {
@@ -85,6 +89,33 @@ const Calendar = ({ visibleFriends = [] }) => {
       setEvents(formattedEvents);
     } catch (error) {
       console.error("Error fetching events:", error);
+    }
+  };
+  const fetchInvites = async () => {
+    try {
+      const response = await axios.get('/api/events/invites/');
+      // Filter so we only see 'pending' invites in the dropdown
+      const pendingInvites = response.data.filter(inv => inv.status === 'pending');
+      setInvites(pendingInvites);
+    } catch (error) {
+      console.error("Error fetching invites:", error);
+    }
+  };
+
+  // Handle Accept or Decline
+  const handleInviteResponse = async (inviteId, status) => {
+    try {
+      await axios.post(`/api/events/invites/${inviteId}/respond/`, { status });
+      
+      // Remove that invite from the dropdown list
+      setInvites(invites.filter(inv => inv.id !== inviteId));
+      
+      // If they accepted, refresh the calendar to show the new event
+      if (status === 'accepted') {
+        fetchEvents();
+      }
+    } catch (error) {
+      console.error(`Failed to ${status} invite:`, error);
     }
   };
 
@@ -138,50 +169,87 @@ const Calendar = ({ visibleFriends = [] }) => {
 
   // handles both creating new events and updating existing ones
   const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    if (isFormIncomplete || hasInvalidRange || isSubmitting) {
-      return;
-    }
-
-    setIsSubmitting(true);
-
-    try {
-      const payload = {
-        ...formData,
-        start_date: new Date(formData.start_date).toISOString(),
-        end_date: new Date(formData.end_date).toISOString(),
-        shared_with: formData.shared_with.split(',').map(id => id.trim()).filter(id => id !== '')
-      };
-
-      if (selectedEventId) {
-        // updating an existing event
-        const response = await axios.put(`/api/events/${selectedEventId}/`, payload);
-        const updatedEvent = response.data;
-        setEvents(events.map(ev => ev.id === updatedEvent.id ? {
-          id: updatedEvent.id,
-          title: updatedEvent.title,
-          start: updatedEvent.start_date,
-          end: updatedEvent.end_date,
-        } : ev));
-      } else {
-        // creating a brand new event
-        const response = await axios.post('/api/events/', payload);
-        const newEvent = response.data;
-        setEvents([...events, {
-          id: newEvent.id,
-          title: newEvent.title,
-          start: newEvent.start_date,
-          end: newEvent.end_date,
-        }]);
+      e.preventDefault();
+      console.log("%c >>> SUBMIT TRIGGERED <<< ", "background: #222; color: #bada55; font-size: 20px;");
+      
+      // Recalculate validation just to be safe
+      const isFormIncompleteCheck = !formData.title.trim() || !formData.start_date || !formData.end_date;
+      
+      if (isFormIncompleteCheck || hasInvalidRange || isSubmitting) {
+        console.warn("Validation Failed. Check required fields.");
+        return;
       }
-      closeModal();
-    } catch (error) {
-      console.error("Error saving event:", error);
-      alert("Failed to save event. Make sure Django is running!");
-      setIsSubmitting(false);
-    }
-  };
+
+      setIsSubmitting(true);
+      console.log('Passed validation. starting api calls');
+
+      try {
+        const payload = {
+          title: formData.title,
+          description: formData.description,
+          location: formData.location,
+          start_date: new Date(formData.start_date).toISOString(),
+          end_date: new Date(formData.end_date).toISOString(),
+          priority: formData.priority,
+        };
+
+        let currentEventId = selectedEventId;
+
+        if (selectedEventId) {
+          console.log('Attempting PUT request');
+          const response = await axios.put(`/api/events/${selectedEventId}/`, payload);
+          const updatedEvent = response.data;
+          setEvents(events.map(ev => ev.id === updatedEvent.id ? {
+            id: updatedEvent.id,
+            title: updatedEvent.title,
+            start: updatedEvent.start_date,
+            end: updatedEvent.end_date,
+          } : ev));
+        } else {
+          console.log('Attempting POST request');
+          const response = await axios.post('/api/events/', payload);
+          const newEvent = response.data;
+          currentEventId = newEvent.id; 
+          setEvents([...events, {
+            id: newEvent.id,
+            title: newEvent.title,
+            start: newEvent.start_date,
+            end: newEvent.end_date,
+          }]);
+        }
+        
+        console.log('Event is saved! Event id is:', currentEventId);
+
+        // --- CRITICAL FIX: Handle the comma-separated string ---
+        const usernamesToInvite = formData.shared_with
+          ? formData.shared_with.split(',').map(name => name.trim()).filter(name => name !== '')
+          : [];
+
+        console.log('Parsed usernames to invite:', usernamesToInvite);
+
+        if (usernamesToInvite.length > 0 && currentEventId) {
+          for (const username of usernamesToInvite) {
+            try {
+              console.log(`Sending invite request for: ${username}`);
+              const inviteRes = await axios.post('/api/events/invites/send/', {
+                event_id: currentEventId,
+                username: username
+              });
+              console.log(`Invite successful for ${username}:`, inviteRes.data);
+            } catch (inviteError) {
+              console.error(`Failed to invite ${username}:`, inviteError.response?.data || inviteError);
+            }
+          }
+        }
+        
+        closeModal();
+      } catch (error) {
+        console.error("Error saving event:", error.response?.data || error);
+        alert("Failed to save event. Check console for details.");
+      } finally {
+        setIsSubmitting(false); 
+      }
+    };
 
   // deletes the event we're currently looking at
   const handleDelete = async () => {
@@ -194,13 +262,103 @@ const Calendar = ({ visibleFriends = [] }) => {
       console.error("Error deleting event:", error);
     }
   };
+  const formatInviteTime = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' • ' + 
+           date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  };
+
+  // Helper to check for scheduling conflicts
+  const hasConflict = (inviteStart, inviteEnd) => {
+    const newStart = new Date(inviteStart);
+    const newEnd = new Date(inviteEnd);
+    
+    // Check against all currently loaded events
+    return events.some(ev => {
+      const existingStart = new Date(ev.start);
+      const existingEnd = new Date(ev.end);
+      // Logic for overlapping time windows
+      return newStart < existingEnd && newEnd > existingStart;
+    });
+  };
 
   return (
     <div className="relative">
-      <div className="mb-5 flex items-center justify-between">
+      <div className="mb-5 flex items-center justify-between relative">
         <div>
           <h1 className="text-2xl font-semibold text-[#1a2744]">Calendar</h1>
           <p className="mt-1 text-sm text-muted-foreground">Tap any date to add something</p>
+        </div>
+
+        <div className="relative">
+          <Button 
+            variant="outline" 
+            size="icon" 
+            className="relative rounded-full"
+            onClick={() => setShowInvitesList(!showInvitesList)}
+          >
+            <Bell className="size-5 text-muted-foreground" />
+            {invites.length > 0 && (
+              <span className="absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+                {invites.length}
+              </span>
+            )}
+          </Button>
+
+          {showInvitesList && (
+            <div className="absolute right-0 top-12 z-50 w-80 rounded-md border bg-white p-2 shadow-lg">
+              <h3 className="mb-2 px-2 text-sm font-semibold text-gray-700">Pending Invites</h3>
+              
+              {invites.length === 0 ? (
+                <p className="px-2 py-3 text-sm text-gray-500 text-center">No new invites.</p>
+              ) : (
+                <div className="flex flex-col gap-2 max-h-[60vh] overflow-y-auto">
+                  {invites.map((invite) => {
+                    const isConflict = hasConflict(invite.event_start, invite.event_end);
+                    
+                    return (
+                      <div key={invite.id} className="flex flex-col rounded-lg border bg-muted/20 p-3 text-sm shadow-sm transition-colors hover:bg-muted/40">
+                        
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1 pr-2">
+                            <p className="font-semibold text-gray-900 truncate">{invite.event_title}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">
+                              From: <span className="font-medium text-blue-600">@{invite.organizer_username}</span>
+                            </p>
+                          </div>
+                          
+                          {/* Accept / Decline Buttons */}
+                          <div className="flex gap-1 shrink-0">
+                            <Button size="icon" variant="ghost" className="h-7 w-7 text-green-600 hover:bg-green-100" onClick={() => handleInviteResponse(invite.id, 'accepted')}>
+                              <Check className="size-4" />
+                            </Button>
+                            <Button size="icon" variant="ghost" className="h-7 w-7 text-red-600 hover:bg-red-100" onClick={() => handleInviteResponse(invite.id, 'declined')}>
+                              <X className="size-4" />
+                            </Button>
+                          </div>
+                        </div>
+
+                        <div className="mt-2 space-y-1.5">
+                          <p className="flex items-center text-xs text-gray-600">
+                            <Clock3 className="mr-1.5 size-3.5" />
+                            {formatInviteTime(invite.event_start)}
+                          </p>
+                          
+                          {/* Conflict Warning Badge */}
+                          {isConflict && (
+                            <p className="inline-flex items-center rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-medium text-red-800 w-fit">
+                              Time Conflict
+                            </p>
+                          )}
+                        </div>
+                        
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -312,10 +470,26 @@ const Calendar = ({ visibleFriends = [] }) => {
                 />
               </div>
 
+              <div className="grid gap-1.5">
+                <Label htmlFor="shared_with" className="text-sm font-medium">Share with Friends</Label>
+                <Input
+                  id="shared_with"
+                  name="shared_with"
+                  value={formData.shared_with}
+                  onChange={handleInputChange}
+                  placeholder="e.g., ben_raykhman, kevin_wang"
+                  classname="h-10"
+                />
+                <p className="text-[0.8rem] text-muted-foreground">
+                  Enter comma-separated Usernames
+                </p>
+              </div>
+
               {formError && (
                 <p className="text-sm text-red-500">{formError}</p>
               )}
             </div>
+
 
             <div className="flex items-center justify-between border-t bg-muted/20 px-6 py-3">
               <div>
