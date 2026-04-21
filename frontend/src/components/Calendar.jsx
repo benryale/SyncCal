@@ -3,6 +3,7 @@ import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
+import { ThemeToggle } from "@/components/ThemeToggle";
 import {  Bell, Check, X } from 'lucide-react';
 import axios from 'axios';
 import { CalendarDays, Clock3, LoaderCircle } from 'lucide-react';
@@ -290,20 +291,24 @@ const Calendar = ({ visibleFriends = [] }) => {
           <p className="mt-1 text-sm text-muted-foreground">Tap any date to add something</p>
         </div>
 
-        <div className="relative">
-          <Button 
-            variant="outline" 
-            size="icon" 
-            className="relative rounded-full"
-            onClick={() => setShowInvitesList(!showInvitesList)}
-          >
-            <Bell className="size-5 text-muted-foreground" />
-            {invites.length > 0 && (
-              <span className="absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
-                {invites.length}
-              </span>
-            )}
-          </Button>
+        <div className="flex items-center gap-3">
+          
+          <ThemeToggle /> {/* toggle button */}
+
+          <div className="relative">
+            <Button 
+              variant="outline" 
+              size="icon" 
+              className="relative rounded-full"
+              onClick={() => setShowInvitesList(!showInvitesList)}
+            >
+              <Bell className="size-5 text-muted-foreground" />
+              {invites.length > 0 && (
+                <span className="absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+                  {invites.length}
+                </span>
+              )}
+            </Button>
 
           {showInvitesList && (
             <div className="absolute right-0 top-12 z-50 w-80 rounded-md border bg-white p-2 shadow-lg">
@@ -358,7 +363,7 @@ const Calendar = ({ visibleFriends = [] }) => {
                 </div>
               )}
             </div>
-          )}
+          )}</div>
         </div>
       </div>
 
