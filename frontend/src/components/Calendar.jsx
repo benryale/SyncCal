@@ -6,6 +6,7 @@ import interactionPlugin from '@fullcalendar/interaction';
 import { ThemeToggle } from "@/components/ThemeToggle";
 import {  Bell, Check, X } from 'lucide-react';
 import axios from 'axios';
+import { FriendShareSelector } from './FriendShareSelector';
 import { CalendarDays, Clock3, LoaderCircle } from 'lucide-react';
 
 import { Button } from "@/components/ui/button"
@@ -221,7 +222,7 @@ const Calendar = ({ visibleFriends = [] }) => {
         
         console.log('Event is saved! Event id is:', currentEventId);
 
-        // --- CRITICAL FIX: Handle the comma-separated string ---
+        // --- Handle the comma-separated string ---
         const usernamesToInvite = formData.shared_with
           ? formData.shared_with.split(',').map(name => name.trim()).filter(name => name !== '')
           : [];
@@ -392,7 +393,7 @@ const Calendar = ({ visibleFriends = [] }) => {
           setShowModal(true);
         }}
       >
-        <DialogContent className="overflow-hidden p-0 sm:max-w-md">
+        <DialogContent className="p-0 sm:max-w-md overflow-visible">
           <DialogHeader className="px-6 pt-5 pb-1 text-center">
             <DialogTitle className="text-lg font-semibold">
               {selectedEventId ? 'Edit event' : 'New event'}
@@ -477,14 +478,12 @@ const Calendar = ({ visibleFriends = [] }) => {
 
               <div className="grid gap-1.5">
                 <Label htmlFor="shared_with" className="text-sm font-medium">Share with Friends</Label>
-                <Input
-                  id="shared_with"
-                  name="shared_with"
+
+                <FriendShareSelector 
                   value={formData.shared_with}
                   onChange={handleInputChange}
-                  placeholder="e.g., ben_raykhman, kevin_wang"
-                  classname="h-10"
                 />
+
                 <p className="text-[0.8rem] text-muted-foreground">
                   Enter comma-separated Usernames
                 </p>
