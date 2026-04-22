@@ -343,11 +343,11 @@ const Calendar = ({ visibleFriends = [] }) => {
             </Button>
 
           {showInvitesList && (
-            <div className="absolute right-0 top-12 z-50 w-80 rounded-md border bg-white p-2 shadow-lg">
-              <h3 className="mb-2 px-2 text-sm font-semibold text-gray-700">Pending Invites</h3>
-              
+            <div className="absolute right-0 top-12 z-50 w-80 rounded-md border bg-popover p-2 shadow-lg">
+              <h3 className="mb-2 px-2 text-sm font-semibold text-foreground">Pending Invites</h3>
+
               {invites.length === 0 ? (
-                <p className="px-2 py-3 text-sm text-gray-500 text-center">No new invites.</p>
+                <p className="px-2 py-3 text-sm text-muted-foreground text-center">No new invites.</p>
               ) : (
                 <div className="flex flex-col gap-2 max-h-[60vh] overflow-y-auto">
                   {invites.map((invite) => {
@@ -358,32 +358,32 @@ const Calendar = ({ visibleFriends = [] }) => {
                         
                         <div className="flex items-start justify-between">
                           <div className="flex-1 pr-2">
-                            <p className="font-semibold text-gray-900 truncate">{invite.event_title}</p>
-                            <p className="text-xs text-gray-500 mt-0.5">
-                              From: <span className="font-medium text-blue-600">@{invite.organizer_username}</span>
+                            <p className="font-semibold text-foreground truncate">{invite.event_title}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              From: <span className="font-medium text-blue-600 dark:text-blue-400">@{invite.organizer_username}</span>
                             </p>
                           </div>
                           
                           {/* Accept / Decline Buttons */}
                           <div className="flex gap-1 shrink-0">
-                            <Button size="icon" variant="ghost" className="h-7 w-7 text-green-600 hover:bg-green-100" onClick={() => handleInviteResponse(invite.id, 'accepted')}>
+                            <Button size="icon" variant="ghost" className="h-7 w-7 text-green-600 hover:bg-green-100 dark:text-green-400 dark:hover:bg-green-900/50" onClick={() => handleInviteResponse(invite.id, 'accepted')}>
                               <Check className="size-4" />
                             </Button>
-                            <Button size="icon" variant="ghost" className="h-7 w-7 text-red-600 hover:bg-red-100" onClick={() => handleInviteResponse(invite.id, 'declined')}>
+                            <Button size="icon" variant="ghost" className="h-7 w-7 text-red-600 hover:bg-red-100 dark:text-red-400 dark:hover:bg-red-900/50" onClick={() => handleInviteResponse(invite.id, 'declined')}>
                               <X className="size-4" />
                             </Button>
                           </div>
                         </div>
 
                         <div className="mt-2 space-y-1.5">
-                          <p className="flex items-center text-xs text-gray-600">
+                          <p className="flex items-center text-xs text-muted-foreground">
                             <Clock3 className="mr-1.5 size-3.5" />
                             {formatInviteTime(invite.event_start)}
                           </p>
                           
                           {/* Conflict Warning Badge */}
                           {isConflict && (
-                            <p className="inline-flex items-center rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-medium text-red-800 w-fit">
+                            <p className="inline-flex items-center rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-medium text-red-800 dark:bg-red-900/30 dark:text-red-200 w-fit">
                               Time Conflict
                             </p>
                           )}

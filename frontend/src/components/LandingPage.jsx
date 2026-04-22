@@ -24,7 +24,7 @@ function LandingPage({ onGetStarted }) {
     <div>
       {/* Hero */}
       <div className="mx-auto max-w-2xl px-6 pt-20 pb-16 text-center">
-        <h1 className="text-4xl font-bold tracking-tight text-[#1a2744] sm:text-5xl">
+        <h1 className="text-4xl font-bold tracking-tight text-[#1a2744] dark:text-slate-100 sm:text-5xl">
           We help you find a time that works for everyone
         </h1>
         <p className="mx-auto mt-5 max-w-md text-lg leading-relaxed text-muted-foreground">
@@ -43,10 +43,10 @@ function LandingPage({ onGetStarted }) {
 
       {/* Calendar Preview */}
       <div className="mx-auto max-w-3xl px-6 pb-16">
-        <div className="rounded-xl border border-border bg-white p-6 shadow-lg">
+        <div className="rounded-xl border border-border bg-card p-6 shadow-lg">
           {/* Toolbar mockup */}
           <div className="flex items-center justify-between mb-4">
-            <span className="text-lg font-semibold text-[#1a2744]">March 2026</span>
+            <span className="text-lg font-semibold text-[#1a2744] dark:text-slate-100">March 2026</span>
             <div className="flex items-center gap-2">
               <div className="rounded-md bg-secondary px-3 py-1.5 text-xs font-medium text-muted-foreground">today</div>
               <div className="flex">
@@ -96,17 +96,17 @@ function LandingPage({ onGetStarted }) {
       </div>
 
       {/* How It Works */}
-      <div id="how-it-works" className="border-t border-border bg-white">
+      <div id="how-it-works" className="border-t border-border bg-card">
         <div className="mx-auto max-w-3xl px-6 py-16">
-          <h2 className="text-center text-2xl font-semibold text-[#1a2744]">Simple as 1, 2, 3</h2>
+          <h2 className="text-center text-2xl font-semibold text-[#1a2744] dark:text-slate-100">Simple as 1, 2, 3</h2>
 
           <div className="mt-10 grid gap-8 sm:grid-cols-3">
             {steps.map((step, i) => (
               <div key={i} className="text-center">
                 <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
-                  <step.icon className="size-5 text-[#1a2744]" />
+                  <step.icon className="size-5 text-[#1a2744] dark:text-slate-100" />
                 </div>
-                <h3 className="text-sm font-semibold text-[#1a2744]">{step.title}</h3>
+                <h3 className="text-sm font-semibold text-[#1a2744] dark:text-slate-100">{step.title}</h3>
                 <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">{step.description}</p>
               </div>
             ))}

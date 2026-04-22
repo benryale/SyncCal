@@ -89,14 +89,14 @@ function FriendList({ user, visibleFriends = [], onVisibleFriendsChange = () => 
 
       {/* dropdown panel with tabs for requests and friends */}
       {open && (
-        <div className="absolute right-0 top-[calc(100%+8px)] z-50 w-[300px] overflow-hidden rounded-lg border border-border bg-white shadow-lg">
+        <div className="absolute right-0 top-[calc(100%+8px)] z-50 w-[300px] overflow-hidden rounded-lg border border-border bg-popover shadow-lg">
           {/* tab switcher */}
           <div className="flex border-b border-border">
             <button
               type="button"
               className={`flex-1 cursor-pointer border-b-2 bg-transparent py-2 text-sm ${
                 tab === 'requests'
-                  ? 'border-blue-600 font-semibold text-blue-600'
+                  ? 'border-blue-600 font-semibold text-blue-600 dark:border-blue-400 dark:text-blue-400'
                   : 'border-transparent font-normal text-muted-foreground'
               }`}
               onClick={() => setTab('requests')}
@@ -107,7 +107,7 @@ function FriendList({ user, visibleFriends = [], onVisibleFriendsChange = () => 
               type="button"
               className={`flex-1 cursor-pointer border-b-2 bg-transparent py-2 text-sm ${
                 tab === 'friends'
-                  ? 'border-blue-600 font-semibold text-blue-600'
+                  ? 'border-blue-600 font-semibold text-blue-600 dark:border-blue-400 dark:text-blue-400'
                   : 'border-transparent font-normal text-muted-foreground'
               }`}
               onClick={() => setTab('friends')}

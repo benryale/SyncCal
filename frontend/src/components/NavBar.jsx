@@ -6,13 +6,13 @@ import Avatar from './Avatar';
 
 function NavBar({ user, onLogout, onLoginClick, onLogoClick, visibleFriends, onVisibleFriendsChange }) {
   return (
-    <nav className="h-16 border-b border-border bg-white px-8 flex items-center justify-between">
+    <nav className="h-16 border-b border-border bg-card px-8 flex items-center justify-between">
       <button
         className="flex items-center gap-2.5 cursor-pointer hover:opacity-80 transition-opacity"
         onClick={onLogoClick}
       >
-        <CalendarSync size={24} className="text-[#1a2744]" />
-        <span className="text-lg font-medium text-[#1a2744]">SyncCal</span>
+        <CalendarSync size={24} className="text-[#1a2744] dark:text-slate-100" />
+        <span className="text-lg font-medium text-[#1a2744] dark:text-slate-100">SyncCal</span>
       </button>
 
       {/* search bar shows up in the middle when the user is logged in */}
