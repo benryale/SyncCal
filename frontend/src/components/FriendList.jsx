@@ -3,6 +3,7 @@ import { Users, Check, X } from 'lucide-react'
 import { toast } from 'sonner'
 import axios from 'axios'
 import Avatar from './Avatar'
+import { AnimatedTooltip } from '@/components/ui/animated-tooltip'
 
 function FriendList({ user, visibleFriends = [], onVisibleFriendsChange = () => {} }) {
   const [open, setOpen] = useState(false)
@@ -140,7 +141,9 @@ function FriendList({ user, visibleFriends = [], onVisibleFriendsChange = () => 
                     key={req.id}
                     className="flex items-center gap-2 px-3 py-2.5 hover:bg-muted/50"
                   >
-                    <Avatar username={req.from_username} />
+                    <AnimatedTooltip title={req.from_username} subtitle="sent you a request">
+                      <Avatar username={req.from_username} />
+                    </AnimatedTooltip>
                     <div className="flex-1">
                       <p className="text-sm font-medium text-foreground">{req.from_username}</p>
                       <p className="text-xs text-muted-foreground">wants to be your friend</p>
@@ -190,7 +193,9 @@ function FriendList({ user, visibleFriends = [], onVisibleFriendsChange = () => 
                       }}
                       className="h-4 w-4 cursor-pointer"
                     />
-                    <Avatar username={f.username} />
+                    <AnimatedTooltip title={f.username} subtitle="friend">
+                      <Avatar username={f.username} />
+                    </AnimatedTooltip>
                     <p className="text-sm font-medium text-foreground">{f.username}</p>
                   </div>
                 ))
