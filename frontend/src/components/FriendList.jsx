@@ -3,6 +3,10 @@ import { Users, Check, X } from 'lucide-react'
 import axios from 'axios'
 import s from './FriendList.css'
 
+// Main friends dropdown component used in the navbar.
+// - Shows pending friend requests
+// - Shows current friends
+// - Lets user toggle which friends' events are visible on calendar
 function FriendList({ user, visibleFriends = [], onVisibleFriendsChange = () => {} }) {
   const [open, setOpen] = useState(false)
   const [tab, setTab] = useState('requests')
@@ -10,12 +14,14 @@ function FriendList({ user, visibleFriends = [], onVisibleFriendsChange = () => 
   const [friends, setFriends] = useState([])
   const containerRef = useRef(null)
 
+  // When the dropdown opens (and user is logged in), load both requests and friends.
   useEffect(() => {
     if (!user || !open) return
     fetchPending()
     fetchFriends()
   }, [user, open])
 
+  // Poll pending requests every 30 seconds so badge count stays fresh.
   useEffect(() => {
     if (!user) return
     fetchPending()
@@ -23,6 +29,7 @@ function FriendList({ user, visibleFriends = [], onVisibleFriendsChange = () => 
     return () => clearInterval(interval)
   }, [user])
 
+  // Close dropdown when user clicks outside of the FriendList area.
   useEffect(() => {
     function handleClick(e) {
       if (containerRef.current && !containerRef.current.contains(e.target)) setOpen(false)
@@ -31,6 +38,7 @@ function FriendList({ user, visibleFriends = [], onVisibleFriendsChange = () => 
     return () => document.removeEventListener('mousedown', handleClick)
   }, [])
 
+  // Fetch incoming (pending) friend requests for the current user.
   async function fetchPending() {
     try {
       const res = await axios.get('/api/friends/requests/')
@@ -38,6 +46,7 @@ function FriendList({ user, visibleFriends = [], onVisibleFriendsChange = () => 
     } catch { /* ignore */ }
   }
 
+  // Fetch the accepted friends list for the current user.
   async function fetchFriends() {
     try {
       const res = await axios.get('/api/friends/')
@@ -45,6 +54,7 @@ function FriendList({ user, visibleFriends = [], onVisibleFriendsChange = () => 
     } catch { /* ignore */ }
   }
 
+  // Accept or decline one friend request, then update local UI state.
   async function respond(requestId, action) {
     try {
       await axios.post(`/api/friends/request/${requestId}/respond/`, { action })
@@ -72,6 +82,8 @@ function FriendList({ user, visibleFriends = [], onVisibleFriendsChange = () => 
   )
 }
 
+// Small icon button that opens/closes the friend dropdown.
+// Shows a red badge if there are pending requests.
 function TriggerButton({ count, onClick }) {
   return (
     <button type="button" className={s.trigger} onClick={onClick}>
@@ -81,6 +93,7 @@ function TriggerButton({ count, onClick }) {
   )
 }
 
+// Top tab bar used to switch between Requests and Friends views.
 function TabBar({ tab, setTab, pendingCount, friendCount }) {
   const tabClass = (key) => `${s.tab} ${tab === key ? s.active : ''}`
 
@@ -96,14 +109,19 @@ function TabBar({ tab, setTab, pendingCount, friendCount }) {
   )
 }
 
+// Circular user initial avatar used in both list types.
 function Avatar({ letter }) {
   return <div className={s.avatar}>{letter[0].toUpperCase()}</div>
 }
 
+// Reusable empty-state row when there is no data to show.
 function EmptyState({ message }) {
   return <div className={s.empty}>{message}</div>
 }
 
+// Requests tab content:
+// - shows all pending requests
+// - provides accept/decline actions
 function RequestsTab({ requests, onRespond }) {
   if (requests.length === 0) return <EmptyState message="No pending requests" />
 
@@ -126,9 +144,13 @@ function RequestsTab({ requests, onRespond }) {
   ))
 }
 
+// Friends tab content:
+// - shows accepted friends
+// - checkbox toggles whether each friend's events are visible
 function FriendsTab({ friends, visibleFriends, onVisibleFriendsChange }) {
   if (friends.length === 0) return <EmptyState message="No friends yet" />
 
+  // Toggle one friend id in the visible friends list.
   function toggle(id, checked) {
     if (checked) onVisibleFriendsChange([...visibleFriends, id])
     else onVisibleFriendsChange(visibleFriends.filter(fid => fid !== id))

@@ -1,116 +1,121 @@
 import { useState } from 'react'
 import { CalendarSync } from 'lucide-react'
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import './AuthPage.css'
 
+// Authentication screen used for both login and registration.
+// Parent provides `onAuth(data)` to store user/app state after success.
 function AuthPage({ onAuth }) {
+  // `mode` controls which form variant to show.
   const [mode, setMode] = useState('login')
+
+  // Form field state.
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+
+  // Server/client error message shown under inputs.
   const [error, setError] = useState('')
 
+  // boolean for conditional UI and API payload selection.
+  const isLogin = mode === 'login'
+
+  // Handles submit for both login and registration.
+  // Chooses endpoint/body by current mode, then forwards success data via `onAuth`.
   const submit = async (e) => {
     e.preventDefault()
     setError('')
 
-    let url
-    let body
+    // Use one handler for both routes.
+    const url = isLogin ? '/api/auth/login/' : '/api/auth/register/'
+    const body = isLogin ? { username, password } : { username, email, password }
 
-    if (mode === 'login') {
-      url = '/api/auth/login/'
-      body = { username, password }
-    } else {
-      url = '/api/auth/register/'
-      body = { username, email, password }
-    }
-
+    // Send JSON credentials to backend auth endpoints.
     const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
-      body: JSON.stringify(body)
+      body: JSON.stringify(body),
     })
 
+    // Backend returns either `{ error }` or auth payload (`token`, user data).
     const data = await res.json()
 
     if (!res.ok) {
       setError(data.error)
     } else {
-      // save the token so future API calls are authenticated
+      // Persist token locally so subsequent API requests can authenticate.
       localStorage.setItem('token', data.token)
       onAuth(data)
     }
   }
 
   return (
-    <div className="mx-auto mt-20 max-w-sm">
-      <div className="mb-8 text-center">
-        <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
-          <CalendarSync className="size-5 text-[#1a2744]" />
-        </div>
-        <h2 className="text-xl font-semibold text-foreground">
-          {mode === 'login' ? 'Welcome back' : 'Create your account'}
-        </h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {mode === 'login' ? 'Pick up where you left off' : 'Set up your account in just a few seconds'}
-        </p>
-      </div>
+    <div className="auth-container">
+      <Header isLogin={isLogin} />
 
-      <div className="rounded-lg border border-border bg-white p-6">
+      <div className="auth-card">
         <form onSubmit={submit}>
-          <div className="flex flex-col gap-4">
-            <div className="grid gap-1.5">
+          <div className="auth-fields">
+            <div className="auth-field">
               <Label htmlFor="username">Username</Label>
-              <Input
-                id="username"
-                placeholder="Enter your username"
-                value={username}
-                onChange={e => setUsername(e.target.value)}
-              />
+              <Input id="username" placeholder="Enter your username" value={username} onChange={e => setUsername(e.target.value)} />
             </div>
 
-            {mode === 'register' && (
-              <div className="grid gap-1.5">
+            {!isLogin && (
+              <div className="auth-field">
                 <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                />
+                <Input id="email" type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} />
               </div>
             )}
 
-            <div className="grid gap-1.5">
+            <div className="auth-field">
               <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-              />
+              <Input id="password" type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} />
             </div>
 
-            {error && <p className="text-sm text-destructive">{error}</p>}
+            {error && <p className="auth-error">{error}</p>}
 
-            <Button type="submit" className="w-full">
-              {mode === 'login' ? 'Sign in' : 'Create account'}
+            <Button type="submit" className="auth-submit">
+              {isLogin ? 'Sign in' : 'Create account'}
             </Button>
           </div>
         </form>
       </div>
 
-      <p className="mt-4 text-center text-sm text-muted-foreground">
-        {mode === 'login'
-          ? <span>No account? <button className="text-foreground hover:underline font-medium cursor-pointer" onClick={() => setMode('register')}>Register</button></span>
-          : <span>Have an account? <button className="text-foreground hover:underline font-medium cursor-pointer" onClick={() => setMode('login')}>Sign in</button></span>
-        }
+      <Footer isLogin={isLogin} onSwitch={() => setMode(isLogin ? 'register' : 'login')} />
+    </div>
+  )
+}
+
+// Top logo + heading copy for login/register mode.
+function Header({ isLogin }) {
+  return (
+    <div className="auth-header">
+      <div className="auth-logo">
+        <CalendarSync className="auth-logo-icon" />
+      </div>
+      <h2 className="auth-title">
+        {isLogin ? 'Welcome back' : 'Create your account'}
+      </h2>
+      <p className="auth-subtitle">
+        {isLogin ? 'Pick up where you left off' : 'Set up your account in just a few seconds'}
       </p>
     </div>
+  )
+}
+
+// Bottom switcher that toggles between login and register modes.
+function Footer({ isLogin, onSwitch }) {
+  return (
+    <p className="auth-footer">
+      {isLogin ? 'No account? ' : 'Have an account? '}
+      <button type="button" className="auth-switch-btn" onClick={onSwitch}>
+        {isLogin ? 'Register' : 'Sign in'}
+      </button>
+    </p>
   )
 }
 

@@ -1,0 +1,89 @@
+/* ── page layout ── */
+.auth-container {
+  max-width: 384px;
+  margin: 80px auto 0;
+}
+
+/* ── header ── */
+.auth-header {
+  margin-bottom: 32px;
+  text-align: center;
+}
+
+.auth-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  margin: 0 auto 12px;
+  border-radius: 8px;
+  background: var(--secondary);
+}
+
+.auth-logo-icon {
+  width: 20px;
+  height: 20px;
+  color: #1a2744;
+}
+
+.auth-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.auth-subtitle {
+  margin-top: 4px;
+  font-size: 14px;
+  color: var(--muted-foreground);
+}
+
+/* ── form card ── */
+.auth-card {
+  padding: 24px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: white;
+}
+
+.auth-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.auth-field {
+  display: grid;
+  gap: 6px;
+}
+
+.auth-error {
+  font-size: 14px;
+  color: var(--destructive);
+}
+
+.auth-submit {
+  width: 100%;
+}
+
+/* ── footer toggle ── */
+.auth-footer {
+  margin-top: 16px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--muted-foreground);
+}
+
+.auth-switch-btn {
+  background: none;
+  border: none;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--foreground);
+  cursor: pointer;
+}
+
+.auth-switch-btn:hover {
+  text-decoration: underline;
+}
