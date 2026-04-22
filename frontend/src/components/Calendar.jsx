@@ -374,7 +374,7 @@ const Calendar = ({ visibleFriends = [], user }) => {
         
         console.log('Event is saved! Event id is:', currentEventId);
 
-        // split the shared_with input into individual usernames before sending invites
+        // --- Handle the comma-separated string ---
         const usernamesToInvite = formData.shared_with
           ? formData.shared_with.split(',').map(name => name.trim()).filter(name => name !== '')
           : [];
@@ -633,7 +633,7 @@ const Calendar = ({ visibleFriends = [], user }) => {
           setShowModal(true);
         }}
       >
-        <DialogContent className="overflow-hidden p-0 sm:max-w-md">
+        <DialogContent className="p-0 sm:max-w-md overflow-visible">
           <DialogHeader className="px-6 pt-5 pb-1 text-center">
             <DialogTitle className="text-lg font-semibold">
               {selectedEventId ? 'Edit event' : 'New event'}
@@ -750,14 +750,12 @@ const Calendar = ({ visibleFriends = [], user }) => {
 
               <div className="grid gap-1.5">
                 <Label htmlFor="shared_with" className="text-sm font-medium">Share with Friends</Label>
-                <Input
-                  id="shared_with"
-                  name="shared_with"
+
+                <FriendShareSelector 
                   value={formData.shared_with}
                   onChange={handleInputChange}
-                  placeholder="e.g., ben_raykhman, kevin_wang"
-                  className="h-10"
                 />
+
                 <p className="text-[0.8rem] text-muted-foreground">
                   Enter comma-separated usernames
                 </p>
