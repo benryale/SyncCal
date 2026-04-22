@@ -76,7 +76,7 @@ const Calendar = ({ visibleFriends = [] }) => {
           const friendResponse = await axios.get(`/api/events/?owner_id__in=${visibleFriends.join(',')}`, { withCredentials: true });
           const friendEvents = friendResponse.data.map(event => ({
             id: `friend-${event.id}`,
-            title: `${event.title} (friend)`,
+            title: `Busy (@${event.organizer})`,
             start: event.start_date,
             end: event.end_date,
             backgroundColor: '#ed8936',
