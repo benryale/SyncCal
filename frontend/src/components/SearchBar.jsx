@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { Search, UserPlus, UserCheck, Clock } from 'lucide-react'
+import { toast } from 'sonner'
 import axios from 'axios'
+import Avatar from './Avatar'
 
 function SearchBar({ user }) {
   const [query, setQuery] = useState('')
@@ -57,9 +59,11 @@ function SearchBar({ user }) {
     setRequestStates(prev => ({ ...prev, [toUserId]: 'pending' }))
     try {
       await axios.post('/api/friends/request/', { to_user_id: toUserId })
+      toast.success('Friend request sent')
     } catch {
       // revert on failure so the button goes back to "Add"
       setRequestStates(prev => ({ ...prev, [toUserId]: 'none' }))
+      toast.error("Couldn't send friend request. Try again.")
     }
   }
 
@@ -109,12 +113,12 @@ function SearchBar({ user }) {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => results.length > 0 && setOpen(true)}
-          className="w-full rounded-md border border-border bg-muted/50 py-1.5 pl-8 pr-3 text-sm focus:border-blue-400 focus:bg-white focus:outline-none"
+          className="w-full rounded-md border border-border bg-muted/50 py-1.5 pl-8 pr-3 text-sm focus:border-blue-400 focus:bg-card focus:outline-none"
         />
       </div>
 
       {open && (
-        <div className="absolute left-0 right-0 top-[calc(100%+4px)] z-50 max-h-60 overflow-y-auto rounded-md border border-border bg-white shadow-md">
+        <div className="absolute left-0 right-0 top-[calc(100%+4px)] z-50 max-h-60 overflow-y-auto rounded-md border border-border bg-popover shadow-md">
           {loading ? (
             <div className="px-3 py-2">
               <span className="text-sm text-muted-foreground">Searching...</span>
@@ -129,9 +133,7 @@ function SearchBar({ user }) {
                 key={u.id}
                 className="flex items-center gap-2 px-3 py-2 hover:bg-muted/50"
               >
-                <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-blue-50 text-xs font-semibold text-blue-700">
-                  {u.username[0].toUpperCase()}
-                </div>
+                <Avatar username={u.username} size="sm" />
                 <div className="flex-1">
                   <p className="text-sm font-medium text-foreground">{u.username}</p>
                   {u.email && (

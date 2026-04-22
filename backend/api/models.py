@@ -1,5 +1,27 @@
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.contrib.auth.models import User
+
+from events.zone_utils import validate_iana_timezone
+
+
+# one row per User; auto-created via post_save signal
+class UserProfile(models.Model):
+    user       = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    timezone   = models.CharField(max_length=64, default='UTC')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def clean(self):
+        super().clean()
+        # shared with EventSeries.clean so zone rules stay in sync
+        try:
+            validate_iana_timezone(self.timezone)
+        except ValidationError as exc:
+            raise ValidationError({'timezone': exc.messages})
+
+    def __str__(self):
+        return f'{self.user.username} ({self.timezone})'
 
 
 class FriendRequest(models.Model):
@@ -43,3 +65,11 @@ class Event(models.Model):
     def __str__(self):
         return self.title
 """
+
+
+#create another database that extend the default User from Django 
+class Profile(models.Model):
+    #Create an OnetoOne relationship to User (default to auth User)
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    #image store to avatars/
+    avatar = models.ImageField(upload_to='avatars/', null=True, blank=True)
