@@ -201,7 +201,7 @@ class SplitSeriesAPITests(APITestCase):
         self.assertEqual(ov.series_id, tail_id)
         self.assertEqual(ov.recurrence_id, self.R)
 
-    def test_split_colliding_override_stays_on_original_and_is_surfaced(self):
+    def test_split_colliding_override_moves_to_tail_and_surfaces_field_conflict(self):
         ov = EventOccurrenceOverride.objects.create(
             series=self.series,
             recurrence_id=self.R,
@@ -212,10 +212,16 @@ class SplitSeriesAPITests(APITestCase):
 
         self.assertEqual(r.status_code, 201)
         self.assertEqual(len(r.data['pending_conflicts']), 1)
-        self.assertEqual(r.data['pending_conflicts'][0]['id'], ov.pk)
+        entry = r.data['pending_conflicts'][0]
+        tail_id = r.data['new_series']['id']
+        self.assertEqual(entry['series_id'], tail_id)
+        self.assertEqual(entry['field'], 'title')
+        self.assertEqual(tuple(entry['override_value']), ('Custom title',))
+        self.assertEqual(tuple(entry['proposed_value']), ('Renamed',))
 
         ov.refresh_from_db()
-        self.assertEqual(ov.series_id, self.series.pk)
+        self.assertEqual(ov.series_id, tail_id)
+        self.assertEqual(ov.title_override, 'Custom title')
 
     def test_split_requires_r_minus_one(self):
         r = self.client.post(
