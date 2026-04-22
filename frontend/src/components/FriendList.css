@@ -1,0 +1,147 @@
+.wrapper {
+  position: relative;
+}
+
+.trigger {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 4px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.trigger:hover {
+  background: var(--muted);
+}
+
+.badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 9999px;
+  background: #ef4444;
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  z-index: 50;
+  width: 300px;
+  overflow: hidden;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.tabBar {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+}
+
+.tab {
+  flex: 1;
+  padding: 8px 0;
+  font-size: 14px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--muted-foreground);
+  cursor: pointer;
+}
+
+.tab.active {
+  border-bottom-color: #2563eb;
+  font-weight: 600;
+  color: #2563eb;
+}
+
+.scrollArea {
+  max-height: 288px;
+  overflow-y: auto;
+}
+
+.empty {
+  padding: 24px 16px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--muted-foreground);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+}
+
+.row:hover {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.avatar {
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--foreground);
+}
+
+.subtitle {
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+
+.acceptBtn,
+.declineBtn {
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: none;
+  color: white;
+  cursor: pointer;
+}
+
+.acceptBtn {
+  background: #22c55e;
+}
+
+.acceptBtn:hover {
+  background: #16a34a;
+}
+
+.declineBtn {
+  background: #ef4444;
+}
+
+.declineBtn:hover {
+  background: #dc2626;
+}
+
+.checkbox {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
