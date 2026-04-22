@@ -7,6 +7,8 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import {  Bell, Check, X } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
+import tippy from 'tippy.js';
+import 'tippy.js/dist/tippy.css';
 import { CalendarDays, Clock3, LoaderCircle } from 'lucide-react';
 
 import { Button } from "@/components/ui/button"
@@ -90,6 +92,12 @@ const Calendar = ({ visibleFriends = [] }) => {
     return () => clearInterval(interval);
   }, []);
 
+  // poll friend events every 30 seconds so we pick up their new events live
+  useEffect(() => {
+    const interval = setInterval(fetchEvents, 30000);
+    return () => clearInterval(interval);
+  }, [visibleFriends]);
+
   const fetchEvents = async () => {
     try {
       const response = await axios.get('/api/events/', { withCredentials: true });
@@ -98,6 +106,12 @@ const Calendar = ({ visibleFriends = [] }) => {
         title: event.title,
         start: event.start_date,
         end: event.end_date,
+        // keep these around so the hover tooltip can show extra details
+        extendedProps: {
+          organizer: event.organizer,
+          location: event.location,
+          description: event.description,
+        },
       }));
 
       // also pull events for any friends we've toggled visible
@@ -109,11 +123,16 @@ const Calendar = ({ visibleFriends = [] }) => {
             const color = getFriendColor(event.organizer);
             return {
               id: `friend-${event.id}`,
-              title: `busy (@${event.organizer})`,
+              title: event.organizer,
               start: event.start_date,
               end: event.end_date,
               backgroundColor: color.bg,
               borderColor: color.border,
+              // mark as friend event so the tooltip shows it that way
+              extendedProps: {
+                isFriendEvent: true,
+                organizer: event.organizer,
+              },
             };
           });
           formattedEvents = [...formattedEvents, ...friendEvents];
@@ -330,6 +349,33 @@ const Calendar = ({ visibleFriends = [] }) => {
     }
   };
 
+  // attach a tippy tooltip to every event so hovering shows organizer/location/description instantly
+  const handleEventMount = (info) => {
+    const { isFriendEvent, organizer, location, description } = info.event.extendedProps;
+    const parts = [];
+
+    if (isFriendEvent) {
+      parts.push(`Busy - ${organizer}`);
+    } else {
+      parts.push(info.event.title);
+      if (organizer) parts.push(`Organized by ${organizer}`);
+    }
+    if (location) parts.push(`Location: ${location}`);
+    if (description) parts.push(description);
+
+    tippy(info.el, {
+      content: parts.join('\n'),
+      placement: 'top',
+      arrow: true,
+      maxWidth: 260,
+    });
+  };
+
+  // clean up the tippy instance when FullCalendar removes an event from the DOM
+  const handleEventWillUnmount = (info) => {
+    if (info.el._tippy) info.el._tippy.destroy();
+  };
+
   // remove the currently selected event
   const handleDelete = async () => {
     if (!window.confirm("Are you sure you want to delete this event?")) return;
@@ -451,6 +497,8 @@ const Calendar = ({ visibleFriends = [] }) => {
         events={events}
         dateClick={handleDateClick}
         eventClick={handleEventClick}
+        eventDidMount={handleEventMount}
+        eventWillUnmount={handleEventWillUnmount}
         editable={true}
         eventDrop={handleEventDrop}
         eventResize={handleEventResize}

@@ -199,3 +199,48 @@
 .fc .fc-daygrid-day-number {
   font-size: 0.8125rem;
 }
+
+/* keep event text compact and readable in small calendar cells */
+.fc .fc-event {
+  font-size: 0.72rem;
+  padding: 1px 4px;
+  /* thin halo in the page background color so overlapping events stay visually separated */
+  box-shadow: 0 0 0 2px var(--background);
+}
+
+/* let event titles wrap but cap at 2 lines so they never grow the row unchecked */
+.fc .fc-event-title {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.fc .fc-event-time {
+  font-size: 0.7rem;
+}
+
+/* inverted tippy tooltip so it pops against the app surface (dark on light, light on dark) */
+.tippy-box {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  /* added subtle border made from the foreground color at low opacity so it adapts in both themes */
+  border: 1px solid color-mix(in oklch, var(--primary-foreground) 25%, transparent);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  font-weight: 500;
+}
+
+.tippy-arrow {
+  color: var(--primary);
+}
+
+.tippy-content {
+  white-space: pre-line;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  padding: 6px 10px;
+}
