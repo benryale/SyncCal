@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
@@ -75,12 +75,20 @@ const Calendar = ({ visibleFriends = [] }) => {
   const [selectedEventId, setSelectedEventId] = useState(null);
   const [invites, setInvites] = useState([]);
   const [showInvitesList, setShowInvitesList] = useState(false);
+  // track previous invite count so we only toast when a new one comes in
+  const lastInviteCountRef = useRef(null);
 
   // refetch when visible friends change so we pick up their events too
   useEffect(() => {
     fetchEvents();
     fetchInvites();
   }, [visibleFriends]);
+
+  // poll for new invites every 30 seconds while on the calendar page
+  useEffect(() => {
+    const interval = setInterval(fetchInvites, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   const fetchEvents = async () => {
     try {
@@ -124,6 +132,14 @@ const Calendar = ({ visibleFriends = [] }) => {
       const response = await axios.get('/api/events/invites/');
       // Filter so we only see 'pending' invites in the dropdown
       const pendingInvites = response.data.filter(inv => inv.status === 'pending');
+
+      // first fetch after login: set baseline without toasting
+      if (lastInviteCountRef.current !== null && pendingInvites.length > lastInviteCountRef.current) {
+        const diff = pendingInvites.length - lastInviteCountRef.current;
+        toast(diff === 1 ? 'New event invite' : `${diff} new event invites`);
+      }
+      lastInviteCountRef.current = pendingInvites.length;
+
       setInvites(pendingInvites);
     } catch (error) {
       console.error("Error fetching invites:", error);
