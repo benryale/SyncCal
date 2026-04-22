@@ -8,6 +8,8 @@ import { Toaster } from './components/ui/sonner'
 function App() {
   const [user, setUser] = useState(null);
   const [page, setPage] = useState('landing');
+  // remembers whether the user clicked Log in or Sign Up so the auth page opens in the right mode
+  const [authMode, setAuthMode] = useState('login');
   const [visibleFriends, setVisibleFriends] = useState([]);
 
   // check localStorage on load so we stay logged in after a refresh
@@ -33,7 +35,8 @@ function App() {
       <NavBar
         user={user}
         onLogout={handleLogout}
-        onLoginClick={() => setPage('login')}
+        onLoginClick={() => { setAuthMode('login'); setPage('login'); }}
+        onSignUpClick={() => { setAuthMode('register'); setPage('login'); }}
         onLogoClick={() => setPage('landing')}
         visibleFriends={visibleFriends}
         onVisibleFriendsChange={setVisibleFriends}
@@ -43,11 +46,14 @@ function App() {
       )}
       {page === 'login' && !user && (
         <div className="px-6 py-6">
-          <AuthPage onAuth={(data) => {
-            setUser(data);
-            if (data.username) localStorage.setItem('username', data.username);
-            setPage('calendar');
-          }} />
+          <AuthPage
+            initialMode={authMode}
+            onAuth={(data) => {
+              setUser(data);
+              if (data.username) localStorage.setItem('username', data.username);
+              setPage('calendar');
+            }}
+          />
         </div>
       )}
       {page === 'calendar' && (

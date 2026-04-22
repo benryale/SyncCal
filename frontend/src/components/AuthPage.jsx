@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 
-function AuthPage({ onAuth }) {
-  const [mode, setMode] = useState('login')
+function AuthPage({ onAuth, initialMode = 'login' }) {
+  const [mode, setMode] = useState(initialMode)
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
