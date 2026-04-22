@@ -4,7 +4,7 @@ import SearchBar from './SearchBar';
 import FriendList from './FriendList';
 import Avatar from './Avatar';
 
-function NavBar({ user, onLogout, onLoginClick, onLogoClick, visibleFriends, onVisibleFriendsChange }) {
+function NavBar({ user, onLogout, onLoginClick, onSignUpClick, onLogoClick, visibleFriends, onVisibleFriendsChange }) {
   return (
     <nav className="h-16 border-b border-border bg-card px-8 flex items-center justify-between">
       <button
@@ -41,7 +41,7 @@ function NavBar({ user, onLogout, onLoginClick, onLogoClick, visibleFriends, onV
             >
               Log in
             </button>
-            <Button onClick={onLoginClick}>
+            <Button onClick={onSignUpClick}>
               Sign Up
             </Button>
           </>
