@@ -16,8 +16,10 @@ export default defineConfig({
   server: {
     port: 3000,
     proxy: {
-      // used the docker service name so the frontend container can reach the backend container
-      '/api': process.env.VITE_API_URL || 'http://backend:8000',
+      '/api': {
+        target: 'http://127.0.0.1:8001',
+        changeOrigin: true,
+      },
     },
   },
 })
