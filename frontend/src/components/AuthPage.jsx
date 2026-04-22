@@ -22,8 +22,16 @@ function AuthPage({ onAuth }) {
       url = '/api/auth/login/'
       body = { username, password }
     } else {
+      // send browser tz if we can detect it; backend falls back to UTC
+      const detectedTz = (() => {
+        try {
+          return Intl.DateTimeFormat().resolvedOptions().timeZone
+        } catch {
+          return undefined
+        }
+      })()
       url = '/api/auth/register/'
-      body = { username, email, password }
+      body = { username, email, password, timezone: detectedTz }
     }
 
     const res = await fetch(url, {
@@ -38,8 +46,7 @@ function AuthPage({ onAuth }) {
     if (!res.ok) {
       setError(data.error)
     } else {
-      // save the token so future API calls are authenticated
-      localStorage.setItem('token', data.token)
+      // App.jsx handles localStorage
       onAuth(data)
     }
   }
