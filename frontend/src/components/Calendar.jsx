@@ -255,6 +255,39 @@ const Calendar = ({ visibleFriends = [] }) => {
       }
     };
 
+  // called when an event gets dragged to a new day or time
+  // saves the new times to the backend, reverts visually if it fails
+  const handleEventDrop = async (info) => {
+    try {
+      await axios.put(`/api/events/${info.event.id}/`, {
+        title: info.event.title,
+        start_date: info.event.start.toISOString(),
+        end_date: (info.event.end || info.event.start).toISOString(),
+      });
+      toast.success('Event moved');
+    } catch (error) {
+      console.error("Failed to move event:", error);
+      toast.error("Couldn't move that event. Putting it back.");
+      info.revert();
+    }
+  };
+
+  // called when the user stretches an event's edge to change its duration
+  const handleEventResize = async (info) => {
+    try {
+      await axios.put(`/api/events/${info.event.id}/`, {
+        title: info.event.title,
+        start_date: info.event.start.toISOString(),
+        end_date: info.event.end.toISOString(),
+      });
+      toast.success('Event updated');
+    } catch (error) {
+      console.error("Failed to resize event:", error);
+      toast.error("Couldn't resize that event. Putting it back.");
+      info.revert();
+    }
+  };
+
   // remove the currently selected event
   const handleDelete = async () => {
     if (!window.confirm("Are you sure you want to delete this event?")) return;
@@ -383,6 +416,9 @@ const Calendar = ({ visibleFriends = [] }) => {
         events={events}
         dateClick={handleDateClick}
         eventClick={handleEventClick}
+        editable={true}
+        eventDrop={handleEventDrop}
+        eventResize={handleEventResize}
         height="75vh"
         eventDisplay="block"
       />
