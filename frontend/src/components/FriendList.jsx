@@ -1,6 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
 import { Users, Check, X } from 'lucide-react'
+import { toast } from 'sonner'
 import axios from 'axios'
+import Avatar from './Avatar'
+import { AnimatedTooltip } from '@/components/ui/animated-tooltip'
+import { TextGenerateEffect } from '@/components/ui/text-generate-effect'
 
 function FriendList({ user, visibleFriends = [], onVisibleFriendsChange = () => {} }) {
   const [open, setOpen] = useState(false)
@@ -8,6 +12,8 @@ function FriendList({ user, visibleFriends = [], onVisibleFriendsChange = () => 
   const [pendingRequests, setPendingRequests] = useState([])
   const [friends, setFriends] = useState([])
   const containerRef = useRef(null)
+  // track the previous request count so we only toast when a new one comes in
+  const lastCountRef = useRef(null)
 
   // refresh both lists whenever the dropdown opens
   useEffect(() => {
@@ -38,6 +44,15 @@ function FriendList({ user, visibleFriends = [], onVisibleFriendsChange = () => 
   async function fetchPending() {
     try {
       const res = await axios.get('/api/friends/requests/')
+      const newCount = res.data.length
+
+      // first fetch after login: just set the baseline, no toast yet
+      if (lastCountRef.current !== null && newCount > lastCountRef.current) {
+        const diff = newCount - lastCountRef.current
+        toast(diff === 1 ? 'New friend request' : `${diff} new friend requests`)
+      }
+      lastCountRef.current = newCount
+
       setPendingRequests(res.data)
     } catch { /* ignore */ }
   }
@@ -56,8 +71,15 @@ function FriendList({ user, visibleFriends = [], onVisibleFriendsChange = () => 
       // remove the request from the list immediately
       setPendingRequests(prev => prev.filter(r => r.id !== requestId))
       // if accepted, refresh friends so the new one shows up
-      if (action === 'accept') fetchFriends()
-    } catch { /* ignore */ }
+      if (action === 'accept') {
+        fetchFriends()
+        toast.success('Friend request accepted')
+      } else {
+        toast('Friend request declined')
+      }
+    } catch {
+      toast.error("Couldn't respond to the request. Try again.")
+    }
   }
 
   if (!user) return null
@@ -80,14 +102,14 @@ function FriendList({ user, visibleFriends = [], onVisibleFriendsChange = () => 
 
       {/* dropdown panel with tabs for requests and friends */}
       {open && (
-        <div className="absolute right-0 top-[calc(100%+8px)] z-50 w-[300px] overflow-hidden rounded-lg border border-border bg-white shadow-lg">
+        <div className="absolute right-0 top-[calc(100%+8px)] z-50 w-[300px] overflow-hidden rounded-lg border border-border bg-popover shadow-lg">
           {/* tab switcher */}
           <div className="flex border-b border-border">
             <button
               type="button"
               className={`flex-1 cursor-pointer border-b-2 bg-transparent py-2 text-sm ${
                 tab === 'requests'
-                  ? 'border-blue-600 font-semibold text-blue-600'
+                  ? 'border-blue-600 font-semibold text-blue-600 dark:border-blue-400 dark:text-blue-400'
                   : 'border-transparent font-normal text-muted-foreground'
               }`}
               onClick={() => setTab('requests')}
@@ -98,7 +120,7 @@ function FriendList({ user, visibleFriends = [], onVisibleFriendsChange = () => 
               type="button"
               className={`flex-1 cursor-pointer border-b-2 bg-transparent py-2 text-sm ${
                 tab === 'friends'
-                  ? 'border-blue-600 font-semibold text-blue-600'
+                  ? 'border-blue-600 font-semibold text-blue-600 dark:border-blue-400 dark:text-blue-400'
                   : 'border-transparent font-normal text-muted-foreground'
               }`}
               onClick={() => setTab('friends')}
@@ -111,8 +133,8 @@ function FriendList({ user, visibleFriends = [], onVisibleFriendsChange = () => 
           <div className="max-h-72 overflow-y-auto">
             {tab === 'requests' && (
               pendingRequests.length === 0 ? (
-                <div className="px-4 py-6 text-center">
-                  <span className="text-sm text-muted-foreground">No pending requests</span>
+                <div className="px-4 py-6 text-center text-sm text-muted-foreground">
+                  <TextGenerateEffect words="No pending requests" />
                 </div>
               ) : (
                 pendingRequests.map(req => (
@@ -120,9 +142,9 @@ function FriendList({ user, visibleFriends = [], onVisibleFriendsChange = () => 
                     key={req.id}
                     className="flex items-center gap-2 px-3 py-2.5 hover:bg-muted/50"
                   >
-                    <div className="flex h-[30px] w-[30px] flex-shrink-0 items-center justify-center rounded-full bg-blue-50 text-xs font-semibold text-blue-700">
-                      {req.from_username[0].toUpperCase()}
-                    </div>
+                    <AnimatedTooltip title={req.from_username} subtitle="sent you a request">
+                      <Avatar username={req.from_username} />
+                    </AnimatedTooltip>
                     <div className="flex-1">
                       <p className="text-sm font-medium text-foreground">{req.from_username}</p>
                       <p className="text-xs text-muted-foreground">wants to be your friend</p>
@@ -150,8 +172,8 @@ function FriendList({ user, visibleFriends = [], onVisibleFriendsChange = () => 
 
             {tab === 'friends' && (
               friends.length === 0 ? (
-                <div className="px-4 py-6 text-center">
-                  <span className="text-sm text-muted-foreground">No friends yet</span>
+                <div className="px-4 py-6 text-center text-sm text-muted-foreground">
+                  <TextGenerateEffect words="No friends yet" />
                 </div>
               ) : (
                 friends.map(f => (
@@ -172,9 +194,9 @@ function FriendList({ user, visibleFriends = [], onVisibleFriendsChange = () => 
                       }}
                       className="h-4 w-4 cursor-pointer"
                     />
-                    <div className="flex h-[30px] w-[30px] flex-shrink-0 items-center justify-center rounded-full bg-blue-50 text-xs font-semibold text-blue-700">
-                      {f.username[0].toUpperCase()}
-                    </div>
+                    <AnimatedTooltip title={f.username} subtitle="friend">
+                      <Avatar username={f.username} />
+                    </AnimatedTooltip>
                     <p className="text-sm font-medium text-foreground">{f.username}</p>
                   </div>
                 ))

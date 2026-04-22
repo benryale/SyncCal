@@ -1,30 +1,36 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { CalendarSync } from 'lucide-react'
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 
-function AuthPage({ onAuth }) {
-  const [mode, setMode] = useState('login')
+function AuthPage({ onAuth, initialMode = 'login' }) {
+  const [mode, setMode] = useState(initialMode)
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
 
+  useEffect(() => {
+    setMode(initialMode)
+  }, [initialMode])
+
   const submit = async (e) => {
     e.preventDefault()
     setError('')
 
-    let url
-    let body
+    const detectedTz = (() => {
+      try {
+        return Intl.DateTimeFormat().resolvedOptions().timeZone
+      } catch {
+        return undefined
+      }
+    })()
 
-    if (mode === 'login') {
-      url = '/api/auth/login/'
-      body = { username, password }
-    } else {
-      url = '/api/auth/register/'
-      body = { username, email, password }
-    }
+    const url = mode === 'login' ? '/api/auth/login/' : '/api/auth/register/'
+    const body = mode === 'login'
+      ? { username, password }
+      : { username, email, password, timezone: detectedTz }
 
     const res = await fetch(url, {
       method: 'POST',
@@ -38,8 +44,6 @@ function AuthPage({ onAuth }) {
     if (!res.ok) {
       setError(data.error)
     } else {
-      // save the token so future API calls are authenticated
-      localStorage.setItem('token', data.token)
       onAuth(data)
     }
   }
@@ -48,7 +52,7 @@ function AuthPage({ onAuth }) {
     <div className="mx-auto mt-20 max-w-sm">
       <div className="mb-8 text-center">
         <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
-          <CalendarSync className="size-5 text-[#1a2744]" />
+          <CalendarSync className="size-5 text-[#1a2744] dark:text-slate-100" />
         </div>
         <h2 className="text-xl font-semibold text-foreground">
           {mode === 'login' ? 'Welcome back' : 'Create your account'}
@@ -58,7 +62,7 @@ function AuthPage({ onAuth }) {
         </p>
       </div>
 
-      <div className="rounded-lg border border-border bg-white p-6">
+      <div className="rounded-lg border border-border bg-card p-6">
         <form onSubmit={submit}>
           <div className="flex flex-col gap-4">
             <div className="grid gap-1.5">
