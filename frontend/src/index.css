@@ -206,6 +206,42 @@
   padding: 1px 4px;
   /* thin halo in the page background color so overlapping events stay visually separated */
   box-shadow: 0 0 0 2px var(--background);
+  /* smooth fade-and-scale entrance so events don't just pop in */
+  animation: event-fade-in 0.25s ease-out;
+  transition: transform 0.15s ease-out, filter 0.15s ease-out;
+  cursor: pointer;
+}
+
+/* subtle lift + brighten on hover so events feel interactive */
+.fc .fc-event:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.08);
+}
+
+@keyframes event-fade-in {
+  from { opacity: 0; transform: scale(0.92); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* soft pulsing ring around today's cell so your eye finds it instantly */
+.fc .fc-day-today {
+  position: relative;
+}
+
+.fc .fc-day-today::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 2px solid var(--primary);
+  border-radius: 2px;
+  opacity: 0.5;
+  pointer-events: none;
+  animation: today-pulse 2.5s ease-in-out infinite;
+}
+
+@keyframes today-pulse {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 0.6; }
 }
 
 /* let event titles wrap but cap at 2 lines so they never grow the row unchecked */
