@@ -25,6 +25,8 @@ class FriendRequest(models.Model):
     def __str__(self):
         return f'{self.from_user.username} -> {self.to_user.username} ({self.status})'
     
+
+"""
 class Event(models.Model):
     title = models.CharField(max_length=155)
     start_date = models.DateTimeField()
@@ -40,4 +42,4 @@ class Event(models.Model):
     
     def __str__(self):
         return self.title
-    
+"""
