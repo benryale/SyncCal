@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 import axios from 'axios'
 import Avatar from './Avatar'
 import { AnimatedTooltip } from '@/components/ui/animated-tooltip'
+import { TextGenerateEffect } from '@/components/ui/text-generate-effect'
 
 function FriendList({ user, visibleFriends = [], onVisibleFriendsChange = () => {} }) {
   const [open, setOpen] = useState(false)
@@ -132,8 +133,8 @@ function FriendList({ user, visibleFriends = [], onVisibleFriendsChange = () => 
           <div className="max-h-72 overflow-y-auto">
             {tab === 'requests' && (
               pendingRequests.length === 0 ? (
-                <div className="px-4 py-6 text-center">
-                  <span className="text-sm text-muted-foreground">No pending requests</span>
+                <div className="px-4 py-6 text-center text-sm text-muted-foreground">
+                  <TextGenerateEffect words="No pending requests" />
                 </div>
               ) : (
                 pendingRequests.map(req => (
@@ -171,8 +172,8 @@ function FriendList({ user, visibleFriends = [], onVisibleFriendsChange = () => 
 
             {tab === 'friends' && (
               friends.length === 0 ? (
-                <div className="px-4 py-6 text-center">
-                  <span className="text-sm text-muted-foreground">No friends yet</span>
+                <div className="px-4 py-6 text-center text-sm text-muted-foreground">
+                  <TextGenerateEffect words="No friends yet" />
                 </div>
               ) : (
                 friends.map(f => (

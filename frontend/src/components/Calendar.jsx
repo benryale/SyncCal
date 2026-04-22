@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import tippy from 'tippy.js';
 import 'tippy.js/dist/tippy.css';
 import { CalendarDays, Clock3, LoaderCircle } from 'lucide-react';
+import { TextGenerateEffect } from '@/components/ui/text-generate-effect';
 
 import { Button } from "@/components/ui/button"
 import {
@@ -57,6 +58,25 @@ const getFriendColor = (username) => {
     sum += username.charCodeAt(i);
   }
   return FRIEND_COLORS[sum % FRIEND_COLORS.length];
+};
+
+const isSameOrAfterToday = (date) => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return date >= today;
+};
+
+const eventOverlapsDate = (event, date) => {
+  const dayStart = new Date(date);
+  dayStart.setHours(0, 0, 0, 0);
+
+  const dayEnd = new Date(date);
+  dayEnd.setHours(23, 59, 59, 999);
+
+  const eventStart = new Date(event.start);
+  const eventEnd = event.end ? new Date(event.end) : eventStart;
+
+  return eventStart <= dayEnd && eventEnd >= dayStart;
 };
 
 const initialFormData = {
@@ -409,6 +429,15 @@ const Calendar = ({ visibleFriends = [] }) => {
     });
   };
 
+  const getDayCellClassNames = (arg) => {
+    if (arg.view.type !== 'dayGridMonth' || arg.isOther || !isSameOrAfterToday(arg.date)) {
+      return [];
+    }
+
+    const hasEventOnDay = events.some(event => eventOverlapsDate(event, arg.date));
+    return hasEventOnDay ? [] : ['sync-empty-day'];
+  };
+
   return (
     <div className="relative">
       {/* floating icons that sit in the same row as FullCalendar's toolbar */}
@@ -435,7 +464,9 @@ const Calendar = ({ visibleFriends = [] }) => {
               <h3 className="mb-2 px-2 text-sm font-semibold text-foreground">Pending Invites</h3>
 
               {invites.length === 0 ? (
-                <p className="px-2 py-3 text-sm text-muted-foreground text-center">No new invites.</p>
+                <div className="px-2 py-3 text-sm text-muted-foreground text-center">
+                  <TextGenerateEffect words="No new invites" />
+                </div>
               ) : (
                 <div className="flex flex-col gap-2 max-h-[60vh] overflow-y-auto">
                   {invites.map((invite) => {
@@ -496,6 +527,7 @@ const Calendar = ({ visibleFriends = [] }) => {
         }}
         events={events}
         dateClick={handleDateClick}
+        dayCellClassNames={getDayCellClassNames}
         eventClick={handleEventClick}
         eventDidMount={handleEventMount}
         eventWillUnmount={handleEventWillUnmount}

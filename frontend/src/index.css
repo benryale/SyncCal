@@ -190,10 +190,37 @@
 
 .fc .fc-daygrid-day {
   cursor: pointer;
+  position: relative;
 }
 
 .fc .fc-daygrid-day:hover {
   background-color: var(--accent);
+}
+
+/* future empty days get a hover-only prompt so the month view invites planning without clutter */
+.fc .fc-daygrid-day.sync-empty-day::after {
+  content: '+ Plan';
+  position: absolute;
+  left: 0.5rem;
+  bottom: 0.45rem;
+  border: 1px solid var(--border);
+  border-radius: 9999px;
+  background: color-mix(in oklch, var(--card) 88%, transparent);
+  color: var(--muted-foreground);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  padding: 0.1rem 0.45rem;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.15s ease-out, transform 0.15s ease-out, color 0.15s ease-out;
+  pointer-events: none;
+}
+
+.fc .fc-daygrid-day.sync-empty-day:hover::after {
+  opacity: 1;
+  transform: translateY(0);
+  color: var(--foreground);
 }
 
 .fc .fc-daygrid-day-number {
