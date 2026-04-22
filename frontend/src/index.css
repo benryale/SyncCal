@@ -287,23 +287,3 @@
 }
 
 /* inverted tippy tooltip so it pops against the app surface (dark on light, light on dark) */
-.tippy-box {
-  background: var(--primary);
-  color: var(--primary-foreground);
-  /* added subtle border made from the foreground color at low opacity so it adapts in both themes */
-  border: 1px solid color-mix(in oklch, var(--primary-foreground) 25%, transparent);
-  border-radius: var(--radius);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  font-weight: 500;
-}
-
-.tippy-arrow {
-  color: var(--primary);
-}
-
-.tippy-content {
-  white-space: pre-line;
-  font-size: 0.75rem;
-  line-height: 1.35;
-  padding: 6px 10px;
-}

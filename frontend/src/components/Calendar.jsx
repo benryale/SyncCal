@@ -7,10 +7,9 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import {  Bell, Check, X } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
-import tippy from 'tippy.js';
-import 'tippy.js/dist/tippy.css';
 import { CalendarDays, Clock3, LoaderCircle } from 'lucide-react';
 import { TextGenerateEffect } from '@/components/ui/text-generate-effect';
+import { EventHoverTooltip } from '@/components/ui/event-hover-tooltip';
 
 import { Button } from "@/components/ui/button"
 import {
@@ -89,6 +88,30 @@ const initialFormData = {
   shared_with: ''
 };
 
+const buildEventTooltip = (event) => {
+  const { isFriendEvent, organizer, location, description } = event.extendedProps;
+  const meta = [];
+
+  if (location) meta.push(`Location: ${location}`);
+  if (description) meta.push(description);
+
+  if (isFriendEvent) {
+    return {
+      eventId: event.id,
+      title: `@${organizer}`,
+      subtitle: 'Busy block',
+      meta,
+    };
+  }
+
+  return {
+    eventId: event.id,
+    title: event.title,
+    subtitle: organizer ? `Organized by @${organizer}` : '',
+    meta,
+  };
+};
+
 const Calendar = ({ visibleFriends = [] }) => {
   const [events, setEvents] = useState([]);
   const [showModal, setShowModal] = useState(false);
@@ -97,6 +120,7 @@ const Calendar = ({ visibleFriends = [] }) => {
   const [selectedEventId, setSelectedEventId] = useState(null);
   const [invites, setInvites] = useState([]);
   const [showInvitesList, setShowInvitesList] = useState(false);
+  const [hoveredEventTooltip, setHoveredEventTooltip] = useState(null);
   // track previous invite count so we only toast when a new one comes in
   const lastInviteCountRef = useRef(null);
 
@@ -304,7 +328,7 @@ const Calendar = ({ visibleFriends = [] }) => {
         
         console.log('Event is saved! Event id is:', currentEventId);
 
-        // --- CRITICAL FIX: Handle the comma-separated string ---
+        // split the shared_with input into individual usernames before sending invites
         const usernamesToInvite = formData.shared_with
           ? formData.shared_with.split(',').map(name => name.trim()).filter(name => name !== '')
           : [];
@@ -369,31 +393,42 @@ const Calendar = ({ visibleFriends = [] }) => {
     }
   };
 
-  // attach a tippy tooltip to every event so hovering shows organizer/location/description instantly
+  // attach a motion tooltip to each event so hover details match the rest of the UI
   const handleEventMount = (info) => {
-    const { isFriendEvent, organizer, location, description } = info.event.extendedProps;
-    const parts = [];
+    const showTooltip = () => {
+      const rect = info.el.getBoundingClientRect();
+      setHoveredEventTooltip({
+        top: rect.top,
+        left: rect.left + rect.width / 2,
+        ...buildEventTooltip(info.event),
+      });
+    };
 
-    if (isFriendEvent) {
-      parts.push(`Busy - ${organizer}`);
-    } else {
-      parts.push(info.event.title);
-      if (organizer) parts.push(`Organized by ${organizer}`);
-    }
-    if (location) parts.push(`Location: ${location}`);
-    if (description) parts.push(description);
+    const hideTooltip = () => {
+      setHoveredEventTooltip((current) => (
+        current?.eventId === info.event.id ? null : current
+      ));
+    };
 
-    tippy(info.el, {
-      content: parts.join('\n'),
-      placement: 'top',
-      arrow: true,
-      maxWidth: 260,
-    });
+    info.el.addEventListener('mouseenter', showTooltip);
+    info.el.addEventListener('mouseleave', hideTooltip);
+    info.el._syncShowTooltip = showTooltip;
+    info.el._syncHideTooltip = hideTooltip;
   };
 
-  // clean up the tippy instance when FullCalendar removes an event from the DOM
+  // clean up hover listeners when FullCalendar removes an event node
   const handleEventWillUnmount = (info) => {
-    if (info.el._tippy) info.el._tippy.destroy();
+    if (info.el._syncShowTooltip) {
+      info.el.removeEventListener('mouseenter', info.el._syncShowTooltip);
+      delete info.el._syncShowTooltip;
+    }
+    if (info.el._syncHideTooltip) {
+      info.el.removeEventListener('mouseleave', info.el._syncHideTooltip);
+      delete info.el._syncHideTooltip;
+    }
+    setHoveredEventTooltip((current) => (
+      current?.eventId === info.event.id ? null : current
+    ));
   };
 
   // remove the currently selected event
@@ -440,6 +475,8 @@ const Calendar = ({ visibleFriends = [] }) => {
 
   return (
     <div className="relative">
+      <EventHoverTooltip tooltip={hoveredEventTooltip} />
+
       {/* floating icons that sit in the same row as FullCalendar's toolbar */}
       <div className="absolute right-0 top-0 z-20 flex h-[38px] items-center gap-2">
         <ThemeToggle />
