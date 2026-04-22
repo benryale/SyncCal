@@ -18,6 +18,32 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { formatInUserTz } from "@/lib/time"
+import { fromZonedTime, toZonedTime, format as formatInTz } from 'date-fns-tz'
+
+const COMMON_ZONES = [
+  'UTC',
+  'America/New_York',
+  'America/Chicago',
+  'America/Denver',
+  'America/Los_Angeles',
+  'America/Anchorage',
+  'Pacific/Honolulu',
+  'Europe/London',
+  'Europe/Paris',
+  'Europe/Berlin',
+  'Asia/Tokyo',
+  'Asia/Shanghai',
+  'Asia/Kolkata',
+  'Australia/Sydney',
+]
 
 // attach auth token to every request so the backend knows who we are
 axios.interceptors.request.use(config => {
@@ -28,30 +54,40 @@ axios.interceptors.request.use(config => {
   return config;
 });
 
-// converts a Date object to the format datetime-local inputs expect
-const formatForInput = (dateObj) => {
-  if (!dateObj) return '';
-  return new Date(dateObj.getTime() - (dateObj.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
-};
+// format a UTC instant as a datetime-local string in the given tz
+const formatForInput = (utcValue, tz) => {
+  if (!utcValue) return ''
+  return formatInTz(toZonedTime(utcValue, tz), "yyyy-MM-dd'T'HH:mm", { timeZone: tz })
+}
 
-const initialFormData = {
+const makeInitialFormData = (tz) => ({
   title: '',
   start_date: '',
   end_date: '',
   priority: 1,
   description: '',
   location: '',
-  shared_with: ''
-};
+  shared_with: '',
+  timezone: tz,
+})
 
-const Calendar = ({ visibleFriends = [] }) => {
+const Calendar = ({ visibleFriends = [], user }) => {
+  const userTz = user?.timezone || 'UTC';
   const [events, setEvents] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formData, setFormData] = useState(initialFormData);
+  const [formData, setFormData] = useState(() => makeInitialFormData(userTz));
   const [selectedEventId, setSelectedEventId] = useState(null);
   const [invites, setInvites] = useState([]);
   const [showInvitesList, setShowInvitesList] = useState(false);
+  // tz picker hidden by default, surfaced on edit
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
+  const zonesForPicker = (() => {
+    const seen = new Set([userTz, formData.timezone].filter(Boolean));
+    for (const z of COMMON_ZONES) seen.add(z);
+    return [...seen];
+  })();
 
   // pull events whenever the component loads or visible friends change
   useEffect(() => {
@@ -67,6 +103,13 @@ const Calendar = ({ visibleFriends = [] }) => {
         title: event.title,
         start: event.start_date,
         end: event.end_date,
+        extendedProps: {
+          timezone:    event.timezone,
+          description: event.description,
+          location:    event.location,
+          priority:    event.priority,
+          shared_with: event.shared_with,
+        },
       }));
 
       // if we have friends toggled on, grab their events too
@@ -80,6 +123,13 @@ const Calendar = ({ visibleFriends = [] }) => {
             end: event.end_date,
             backgroundColor: '#ed8936',
             borderColor: '#dd6b20',
+            extendedProps: {
+              timezone:    event.timezone,
+              description: event.description,
+              location:    event.location,
+              priority:    event.priority,
+              shared_with: event.shared_with,
+            },
           }));
           formattedEvents = [...formattedEvents, ...friendEvents];
         } catch (error) {
@@ -121,15 +171,16 @@ const Calendar = ({ visibleFriends = [] }) => {
   };
 
   const resetForm = () => {
-    setFormData(initialFormData);
+    setFormData(makeInitialFormData(userTz));
     setSelectedEventId(null);
+    setShowAdvanced(false);
   };
 
   // clicking an empty date opens the modal for a new event
   const handleDateClick = (arg) => {
     setSelectedEventId(null);
     setFormData({
-      ...initialFormData,
+      ...makeInitialFormData(userTz),
       start_date: `${arg.dateStr}T10:00`,
       end_date: `${arg.dateStr}T11:00`
     });
@@ -139,16 +190,19 @@ const Calendar = ({ visibleFriends = [] }) => {
   // clicking an existing event opens the modal pre-filled for editing
   const handleEventClick = (info) => {
     const event = info.event;
+    const evTz = event.extendedProps.timezone || userTz;
     setSelectedEventId(event.id);
     setFormData({
       title: event.title,
-      start_date: formatForInput(event.start),
-      end_date: formatForInput(event.end || event.start),
+      timezone: evTz,
+      start_date: formatForInput(event.start, evTz),
+      end_date: formatForInput(event.end || event.start, evTz),
       priority: event.extendedProps.priority || 1,
       description: event.extendedProps.description || '',
       location: event.extendedProps.location || '',
       shared_with: event.extendedProps.shared_with ? event.extendedProps.shared_with.join(', ') : ''
     });
+    setShowAdvanced(evTz !== userTz);
     setShowModal(true);
   };
 
@@ -185,13 +239,15 @@ const Calendar = ({ visibleFriends = [] }) => {
       console.log('Passed validation. starting api calls');
 
       try {
+        const tz = formData.timezone || userTz;
         const payload = {
           title: formData.title,
           description: formData.description,
           location: formData.location,
-          start_date: new Date(formData.start_date).toISOString(),
-          end_date: new Date(formData.end_date).toISOString(),
-          priority: formData.priority,
+          start_date: fromZonedTime(formData.start_date, tz).toISOString(),
+          end_date:   fromZonedTime(formData.end_date,   tz).toISOString(),
+          timezone:   tz,
+          priority:   formData.priority,
         };
 
         let currentEventId = selectedEventId;
@@ -263,11 +319,7 @@ const Calendar = ({ visibleFriends = [] }) => {
       console.error("Error deleting event:", error);
     }
   };
-  const formatInviteTime = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' • ' + 
-           date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-  };
+  const formatInviteTime = (dateString) => formatInUserTz(dateString, user?.timezone);
 
   // Helper to check for scheduling conflicts
   const hasConflict = (inviteStart, inviteEnd) => {
@@ -368,6 +420,7 @@ const Calendar = ({ visibleFriends = [] }) => {
       </div>
 
       <FullCalendar
+        timeZone={user?.timezone || 'UTC'}
         plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
         initialView="dayGridMonth"
         headerToolbar={{
@@ -450,6 +503,38 @@ const Calendar = ({ visibleFriends = [] }) => {
                   />
                 </div>
               </div>
+
+              <div className="flex justify-end -mt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowAdvanced(s => !s)}
+                  className="text-xs text-muted-foreground hover:text-foreground hover:underline"
+                >
+                  {showAdvanced ? 'Hide advanced' : 'Show advanced'}
+                </button>
+              </div>
+
+              {showAdvanced && (
+                <div className="grid gap-1.5 rounded-lg border bg-muted/20 p-3">
+                  <Label htmlFor="timezone" className="text-sm font-medium">Anchor timezone</Label>
+                  <Select
+                    value={formData.timezone}
+                    onValueChange={(v) => setFormData(f => ({ ...f, timezone: v }))}
+                  >
+                    <SelectTrigger id="timezone" className="h-9">
+                      <SelectValue placeholder="Pick a timezone" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {zonesForPicker.map(z => (
+                        <SelectItem key={z} value={z}>{z}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[0.75rem] text-muted-foreground">
+                    The start/end times above are interpreted in this zone. Defaults to your preference.
+                  </p>
+                </div>
+              )}
 
               <div className="grid gap-1.5">
                 <Label htmlFor="location" className="text-sm font-medium">Location</Label>
