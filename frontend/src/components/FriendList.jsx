@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Users, Check, X } from 'lucide-react'
 import { toast } from 'sonner'
 import axios from 'axios'
+import Avatar from './Avatar'
 
 function FriendList({ user, visibleFriends = [], onVisibleFriendsChange = () => {} }) {
   const [open, setOpen] = useState(false)
@@ -128,9 +129,7 @@ function FriendList({ user, visibleFriends = [], onVisibleFriendsChange = () => 
                     key={req.id}
                     className="flex items-center gap-2 px-3 py-2.5 hover:bg-muted/50"
                   >
-                    <div className="flex h-[30px] w-[30px] flex-shrink-0 items-center justify-center rounded-full bg-blue-50 text-xs font-semibold text-blue-700">
-                      {req.from_username[0].toUpperCase()}
-                    </div>
+                    <Avatar username={req.from_username} />
                     <div className="flex-1">
                       <p className="text-sm font-medium text-foreground">{req.from_username}</p>
                       <p className="text-xs text-muted-foreground">wants to be your friend</p>
@@ -180,9 +179,7 @@ function FriendList({ user, visibleFriends = [], onVisibleFriendsChange = () => 
                       }}
                       className="h-4 w-4 cursor-pointer"
                     />
-                    <div className="flex h-[30px] w-[30px] flex-shrink-0 items-center justify-center rounded-full bg-blue-50 text-xs font-semibold text-blue-700">
-                      {f.username[0].toUpperCase()}
-                    </div>
+                    <Avatar username={f.username} />
                     <p className="text-sm font-medium text-foreground">{f.username}</p>
                   </div>
                 ))

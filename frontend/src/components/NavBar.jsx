@@ -2,6 +2,7 @@ import { CalendarSync } from 'lucide-react';
 import { Button } from "@/components/ui/button"
 import SearchBar from './SearchBar';
 import FriendList from './FriendList';
+import Avatar from './Avatar';
 
 function NavBar({ user, onLogout, onLoginClick, onLogoClick, visibleFriends, onVisibleFriendsChange }) {
   return (
@@ -26,9 +27,7 @@ function NavBar({ user, onLogout, onLoginClick, onLogoClick, visibleFriends, onV
               visibleFriends={visibleFriends}
               onVisibleFriendsChange={onVisibleFriendsChange}
             />
-            <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-xs font-medium text-blue-700">
-              {user.username[0].toUpperCase()}
-            </div>
+            <Avatar username={user.username} />
             <span className="text-sm text-muted-foreground">{user.username}</span>
             <Button variant="outline" onClick={onLogout}>
               Sign out

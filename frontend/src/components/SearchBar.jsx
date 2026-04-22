@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Search, UserPlus, UserCheck, Clock } from 'lucide-react'
 import { toast } from 'sonner'
 import axios from 'axios'
+import Avatar from './Avatar'
 
 function SearchBar({ user }) {
   const [query, setQuery] = useState('')
@@ -132,9 +133,7 @@ function SearchBar({ user }) {
                 key={u.id}
                 className="flex items-center gap-2 px-3 py-2 hover:bg-muted/50"
               >
-                <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-blue-50 text-xs font-semibold text-blue-700">
-                  {u.username[0].toUpperCase()}
-                </div>
+                <Avatar username={u.username} size="sm" />
                 <div className="flex-1">
                   <p className="text-sm font-medium text-foreground">{u.username}</p>
                   {u.email && (
