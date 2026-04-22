@@ -35,6 +35,28 @@ const formatForInput = (dateObj) => {
   return new Date(dateObj.getTime() - (dateObj.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
 };
 
+// palette of distinct colors we use to tell friends' events apart
+const FRIEND_COLORS = [
+  { bg: '#f97316', border: '#ea580c' }, // orange
+  { bg: '#10b981', border: '#059669' }, // emerald
+  { bg: '#8b5cf6', border: '#7c3aed' }, // violet
+  { bg: '#f43f5e', border: '#e11d48' }, // rose
+  { bg: '#06b6d4', border: '#0891b2' }, // cyan
+  { bg: '#f59e0b', border: '#d97706' }, // amber
+  { bg: '#ec4899', border: '#db2777' }, // pink
+  { bg: '#6366f1', border: '#4f46e5' }, // indigo
+];
+
+// picks a stable color for a username by summing char codes and taking mod
+// so the same friend always gets the same color across sessions
+const getFriendColor = (username) => {
+  let sum = 0;
+  for (let i = 0; i < username.length; i++) {
+    sum += username.charCodeAt(i);
+  }
+  return FRIEND_COLORS[sum % FRIEND_COLORS.length];
+};
+
 const initialFormData = {
   title: '',
   start_date: '',
@@ -74,14 +96,18 @@ const Calendar = ({ visibleFriends = [] }) => {
       if (visibleFriends.length > 0) {
         try {
           const friendResponse = await axios.get(`/api/events/?owner_id__in=${visibleFriends.join(',')}`, { withCredentials: true });
-          const friendEvents = friendResponse.data.map(event => ({
-            id: `friend-${event.id}`,
-            title: `busy (@${event.organizer})`,
-            start: event.start_date,
-            end: event.end_date,
-            backgroundColor: '#ed8936',
-            borderColor: '#dd6b20',
-          }));
+          const friendEvents = friendResponse.data.map(event => {
+            // each friend gets a stable, unique color so you can tell them apart
+            const color = getFriendColor(event.organizer);
+            return {
+              id: `friend-${event.id}`,
+              title: `busy (@${event.organizer})`,
+              start: event.start_date,
+              end: event.end_date,
+              backgroundColor: color.bg,
+              borderColor: color.border,
+            };
+          });
           formattedEvents = [...formattedEvents, ...friendEvents];
         } catch (error) {
           console.log("Could not fetch friend events");
