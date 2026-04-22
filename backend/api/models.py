@@ -41,6 +41,7 @@ class FriendRequest(models.Model):
 #     def __str__(self):
 #         return self.title
 
+
 #create another database that extend the default User from Django 
 class Profile(models.Model):
     #Create an OnetoOne relationship to User (default to auth User)
