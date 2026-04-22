@@ -323,20 +323,14 @@ const Calendar = ({ visibleFriends = [] }) => {
 
   return (
     <div className="relative">
-      <div className="mb-5 flex items-center justify-between relative">
-        <div>
-          <h1 className="text-2xl font-semibold text-[#1a2744]">Calendar</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Tap any date to add something</p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          
-          <ThemeToggle /> {/* toggle button */}
+      {/* floating icons that sit in the same row as FullCalendar's toolbar */}
+      <div className="absolute right-0 top-0 z-20 flex h-[38px] items-center gap-2">
+        <ThemeToggle />
 
           <div className="relative">
-            <Button 
-              variant="outline" 
-              size="icon" 
+            <Button
+              variant="outline"
+              size="icon"
               className="relative rounded-full"
               onClick={() => setShowInvitesList(!showInvitesList)}
             >
@@ -402,7 +396,6 @@ const Calendar = ({ visibleFriends = [] }) => {
               )}
             </div>
           )}</div>
-        </div>
       </div>
 
       <FullCalendar
