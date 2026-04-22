@@ -2,9 +2,13 @@ from django.http import JsonResponse
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.views.decorators.csrf import csrf_exempt
+from django.db.models import Q
 from .models import FriendRequest
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
 import json
 from rest_framework.authtoken.models import Token
+from rest_framework.response import Response
 
 def health(request):
     return JsonResponse({'status': 'ok'})
@@ -137,29 +141,27 @@ def list_friend_requests(request):
     ]
     return JsonResponse(data, safe=False)
 
-
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def list_friends(request):
-    if not request.user.is_authenticated:
-        return JsonResponse({'error': 'Authentication required'}, status=401)
-    if request.method != 'GET':
-        return JsonResponse({'error': 'Method not allowed'}, status=405)
-
-    from django.db.models import Q
-    accepted = FriendRequest.objects.filter(
-        Q(from_user=request.user) | Q(to_user=request.user),
-        status='accepted'
-    ).select_related('from_user', 'to_user')
-
+    user = request.user
+    
+    #firdst we get all accepted requests where the user is either the sender or the receiver
+    accepted_requests = FriendRequest.objects.filter(
+        (Q(from_user=user) | Q(to_user=user)),
+        status = 'accepted'
+    )
+    
+    #extract the other user from each relationship
     friends = []
-    for fr in accepted:
-        friend = fr.to_user if fr.from_user == request.user else fr.from_user
-        friends.append({
-            'id': friend.id,
-            'username': friend.username,
-        })
-
-    return JsonResponse(friends, safe=False)
-
+    for req in accepted_requests:
+        if req.from_user == user:
+            friends.append(req.to_user) # if the user is the sender, the friend is the receiver
+        else:
+            friends.append(req.from_user) # if the user is the receiver, the friend is the sender
+        
+    friend_data = [{'id': friend.id, 'username': friend.username} for friend in friends]
+    return Response(friend_data)
 
 @csrf_exempt
 def register(request):
@@ -179,10 +181,11 @@ def register(request):
 
     # Create new user with hashed password (Django handles hashing automatically)
     user = User.objects.create_user(username=username, email=email, password=password)
+    token, created = Token.objects.get_or_create(user=user)
     # Log in the user immediately after registration (create session)
     login(request, user)
     # Return user ID and username to frontend (status 201 = Created)
-    return JsonResponse({'id': user.id, 'username': user.username}, status=201)
+    return JsonResponse({'token': token.key,'id': user.id, 'username': user.username}, status=201)
 
 @csrf_exempt
 def login_view(request):
