@@ -1,14 +1,22 @@
+import json
+import logging
+
 from django.http import JsonResponse
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.views.decorators.csrf import csrf_exempt
 from django.db.models import Q
-from .models import FriendRequest
+from rest_framework import status
+from rest_framework.authtoken.models import Token
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
-import json
-from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
+
+from events.zone_utils import validate_iana_timezone
+from .models import FriendRequest, UserProfile
+
+logger = logging.getLogger(__name__)
 
 def health(request):
     return JsonResponse({'status': 'ok'})
@@ -165,27 +173,49 @@ def list_friends(request):
 
 @csrf_exempt
 def register(request):
-    # Only accept POST requests 
+    # Only accept POST requests
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
-    
+
     # Parse JSON body to extract username, email, password
     data = json.loads(request.body)
     username = data.get('username')
     email = data.get('email')
     password = data.get('password')
+    tz_hint = data.get('timezone')
 
     # Check if username already exists in database
     if User.objects.filter(username=username).exists():
         return JsonResponse({'error': 'Username already taken'}, status=400)
 
-    # Create new user with hashed password (Django handles hashing automatically)
+    # Create new user with hashed password (Django handles hashing automatically).
     user = User.objects.create_user(username=username, email=email, password=password)
-    token, created = Token.objects.get_or_create(user=user)
+
+    # apply browser-detected tz if client sent one; ignore bad values
+    if tz_hint:
+        try:
+            validate_iana_timezone(tz_hint)
+        except DjangoValidationError:
+            logger.warning(
+                'register: ignoring invalid timezone %r for user %s; profile stays at UTC',
+                tz_hint, user.username,
+            )
+        else:
+            user.profile.timezone = tz_hint
+            user.profile.save(update_fields=['timezone', 'updated_at'])
+
+    token, _ = Token.objects.get_or_create(user=user)
     # Log in the user immediately after registration (create session)
     login(request, user)
-    # Return user ID and username to frontend (status 201 = Created)
-    return JsonResponse({'token': token.key,'id': user.id, 'username': user.username}, status=201)
+    return JsonResponse(
+        {
+            'token':    token.key,
+            'id':       user.id,
+            'username': user.username,
+            'timezone': user.profile.timezone,
+        },
+        status=201,
+    )
 
 @csrf_exempt
 def login_view(request):
@@ -205,9 +235,47 @@ def login_view(request):
         return JsonResponse({'error': 'Invalid credentials'}, status=401)
 
     # Get or create an authentication token for this user (REST API requires token-based auth)
-    token, created = Token.objects.get_or_create(user=user)
+    token, _ = Token.objects.get_or_create(user=user)
+    # lazy-create in case a user was made without the signal firing
+    profile, _ = UserProfile.objects.get_or_create(user=user, defaults={'timezone': 'UTC'})
     # Create a session for the user (traditional session-based auth)
     login(request, user)
-    # Return token, user ID, and username to frontend (token is used for API calls)
-    return JsonResponse({'token': token.key, 'id': user.id, 'username': user.username})
-        
+    return JsonResponse({
+        'token':    token.key,
+        'id':       user.id,
+        'username': user.username,
+        'timezone': profile.timezone,
+    })
+
+
+@api_view(['GET', 'PATCH'])
+@permission_classes([IsAuthenticated])
+def current_user(request):
+    user = request.user
+    # same lazy-create as login_view
+    profile, _ = UserProfile.objects.get_or_create(user=user, defaults={'timezone': 'UTC'})
+
+    if request.method == 'PATCH':
+        tz = request.data.get('timezone')
+        if tz is None:
+            return Response(
+                {'error': 'timezone is required'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            validate_iana_timezone(tz)
+        except DjangoValidationError as exc:
+            return Response(
+                {'timezone': exc.messages},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        profile.timezone = tz
+        profile.save(update_fields=['timezone', 'updated_at'])
+
+    return Response({
+        'id':       user.id,
+        'username': user.username,
+        'email':    user.email,
+        'timezone': profile.timezone,
+    })
+

@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { CalendarSync } from 'lucide-react'
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 
 function AuthPage({ onAuth, initialMode = 'login' }) {
   const [mode, setMode] = useState(initialMode)
@@ -11,20 +11,26 @@ function AuthPage({ onAuth, initialMode = 'login' }) {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
 
+  useEffect(() => {
+    setMode(initialMode)
+  }, [initialMode])
+
   const submit = async (e) => {
     e.preventDefault()
     setError('')
 
-    let url
-    let body
+    const detectedTz = (() => {
+      try {
+        return Intl.DateTimeFormat().resolvedOptions().timeZone
+      } catch {
+        return undefined
+      }
+    })()
 
-    if (mode === 'login') {
-      url = '/api/auth/login/'
-      body = { username, password }
-    } else {
-      url = '/api/auth/register/'
-      body = { username, email, password }
-    }
+    const url = mode === 'login' ? '/api/auth/login/' : '/api/auth/register/'
+    const body = mode === 'login'
+      ? { username, password }
+      : { username, email, password, timezone: detectedTz }
 
     const res = await fetch(url, {
       method: 'POST',
@@ -38,8 +44,6 @@ function AuthPage({ onAuth, initialMode = 'login' }) {
     if (!res.ok) {
       setError(data.error)
     } else {
-      // save the token so future API calls are authenticated
-      localStorage.setItem('token', data.token)
       onAuth(data)
     }
   }
