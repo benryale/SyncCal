@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Users, Check, X } from 'lucide-react'
+import { toast } from 'sonner'
 import axios from 'axios'
 
 function FriendList({ user, visibleFriends = [], onVisibleFriendsChange = () => {} }) {
@@ -56,8 +57,15 @@ function FriendList({ user, visibleFriends = [], onVisibleFriendsChange = () => 
       // remove the request from the list immediately
       setPendingRequests(prev => prev.filter(r => r.id !== requestId))
       // if accepted, refresh friends so the new one shows up
-      if (action === 'accept') fetchFriends()
-    } catch { /* ignore */ }
+      if (action === 'accept') {
+        fetchFriends()
+        toast.success('Friend request accepted')
+      } else {
+        toast('Friend request declined')
+      }
+    } catch {
+      toast.error("Couldn't respond to the request. Try again.")
+    }
   }
 
   if (!user) return null
