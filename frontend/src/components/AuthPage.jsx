@@ -48,7 +48,7 @@ function AuthPage({ onAuth }) {
     <div className="mx-auto mt-20 max-w-sm">
       <div className="mb-8 text-center">
         <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
-          <CalendarSync className="size-5 text-[#1a2744]" />
+          <CalendarSync className="size-5 text-[#1a2744] dark:text-slate-100" />
         </div>
         <h2 className="text-xl font-semibold text-foreground">
           {mode === 'login' ? 'Welcome back' : 'Create your account'}
@@ -58,7 +58,7 @@ function AuthPage({ onAuth }) {
         </p>
       </div>
 
-      <div className="rounded-lg border border-border bg-white p-6">
+      <div className="rounded-lg border border-border bg-card p-6">
         <form onSubmit={submit}>
           <div className="flex flex-col gap-4">
             <div className="grid gap-1.5">

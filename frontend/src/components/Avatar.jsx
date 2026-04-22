@@ -5,7 +5,7 @@ function Avatar({ username, size = 'md' }) {
   const letter = username ? username[0].toUpperCase() : '?'
 
   return (
-    <div className={`${dimensions} flex-shrink-0 rounded-full bg-blue-50 flex items-center justify-center text-xs font-semibold text-blue-700`}>
+    <div className={`${dimensions} flex-shrink-0 rounded-full bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-200 flex items-center justify-center text-xs font-semibold`}>
       {letter}
     </div>
   )
