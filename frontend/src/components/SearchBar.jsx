@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Search, UserPlus, UserCheck, Clock } from 'lucide-react'
+import { toast } from 'sonner'
 import axios from 'axios'
 
 function SearchBar({ user }) {
@@ -57,9 +58,11 @@ function SearchBar({ user }) {
     setRequestStates(prev => ({ ...prev, [toUserId]: 'pending' }))
     try {
       await axios.post('/api/friends/request/', { to_user_id: toUserId })
+      toast.success('Friend request sent')
     } catch {
       // revert on failure so the button goes back to "Add"
       setRequestStates(prev => ({ ...prev, [toUserId]: 'none' }))
+      toast.error("Couldn't send friend request. Try again.")
     }
   }
 

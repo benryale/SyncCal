@@ -3,6 +3,7 @@ import AuthPage from './components/AuthPage'
 import Calendar from './components/Calendar'
 import LandingPage from './components/LandingPage'
 import NavBar from './components/NavBar'
+import { Toaster } from './components/ui/sonner'
 
 function App() {
   const [user, setUser] = useState(null);
@@ -54,6 +55,8 @@ function App() {
           <Calendar visibleFriends={visibleFriends} />
         </div>
       )}
+      {/* global toast container for snackbar-style notifications */}
+      <Toaster position="bottom-right" />
     </div>
   )
 }

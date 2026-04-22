@@ -6,6 +6,7 @@ import interactionPlugin from '@fullcalendar/interaction';
 import { ThemeToggle } from "@/components/ThemeToggle";
 import {  Bell, Check, X } from 'lucide-react';
 import axios from 'axios';
+import { toast } from 'sonner';
 import { CalendarDays, Clock3, LoaderCircle } from 'lucide-react';
 
 import { Button } from "@/components/ui/button"
@@ -117,6 +118,7 @@ const Calendar = ({ visibleFriends = [] }) => {
       }
     } catch (error) {
       console.error(`Failed to ${status} invite:`, error);
+      toast.error(`Couldn't ${status === 'accepted' ? 'accept' : 'decline'} the invite. Try again.`);
     }
   };
 
@@ -243,12 +245,13 @@ const Calendar = ({ visibleFriends = [] }) => {
           }
         }
         
+        toast.success(selectedEventId ? 'Event updated' : 'Event created');
         closeModal();
       } catch (error) {
         console.error("Error saving event:", error.response?.data || error);
-        alert("Failed to save event. Check console for details.");
+        toast.error("Failed to save event. Make sure you're signed in and try again.");
       } finally {
-        setIsSubmitting(false); 
+        setIsSubmitting(false);
       }
     };
 
@@ -258,9 +261,11 @@ const Calendar = ({ visibleFriends = [] }) => {
     try {
       await axios.delete(`/api/events/${selectedEventId}/`);
       setEvents(events.filter(ev => String(ev.id) !== String(selectedEventId)));
+      toast.success('Event deleted');
       closeModal();
     } catch (error) {
       console.error("Error deleting event:", error);
+      toast.error("Couldn't delete the event. Try again.");
     }
   };
   const formatInviteTime = (dateString) => {
