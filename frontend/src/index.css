@@ -177,6 +177,11 @@
   font-weight: 600;
 }
 
+/* leave room on the right for our floating theme toggle and invite bell */
+.fc .fc-toolbar.fc-header-toolbar {
+  padding-right: 110px;
+}
+
 .fc .fc-col-header-cell {
   font-weight: 500;
   font-size: 0.8125rem;
