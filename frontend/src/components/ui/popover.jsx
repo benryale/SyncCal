@@ -1,5 +1,3 @@
-"use client"
-
 import * as React from "react"
 import { Popover as PopoverPrimitive } from "radix-ui"
 
@@ -63,7 +61,7 @@ function PopoverTitle({
   return (
     <div
       data-slot="popover-title"
-      className={cn("font-heading font-medium", className)}
+      className={cn("font-medium", className)}
       {...props} />
   );
 }

@@ -1,22 +1,27 @@
 import { useState, useEffect, useRef } from 'react'
 import { Users, Check, X } from 'lucide-react'
 import axios from 'axios'
+import s from './FriendList.css'
 
+// Main friends dropdown component used in the navbar.
+// - Shows pending friend requests
+// - Shows current friends
+// - Lets user toggle which friends' events are visible on calendar
 function FriendList({ user, visibleFriends = [], onVisibleFriendsChange = () => {} }) {
   const [open, setOpen] = useState(false)
-  const [tab, setTab] = useState('requests') // 'requests' | 'friends'
+  const [tab, setTab] = useState('requests')
   const [pendingRequests, setPendingRequests] = useState([])
   const [friends, setFriends] = useState([])
   const containerRef = useRef(null)
 
-  // refresh both lists whenever the dropdown opens
+  // When the dropdown opens (and user is logged in), load both requests and friends.
   useEffect(() => {
     if (!user || !open) return
     fetchPending()
     fetchFriends()
   }, [user, open])
 
-  // poll for new friend requests every 30 seconds while logged in
+  // Poll pending requests every 30 seconds so badge count stays fresh.
   useEffect(() => {
     if (!user) return
     fetchPending()
@@ -24,17 +29,16 @@ function FriendList({ user, visibleFriends = [], onVisibleFriendsChange = () => 
     return () => clearInterval(interval)
   }, [user])
 
-  // close dropdown on outside click
+  // Close dropdown when user clicks outside of the FriendList area.
   useEffect(() => {
     function handleClick(e) {
-      if (containerRef.current && !containerRef.current.contains(e.target)) {
-        setOpen(false)
-      }
+      if (containerRef.current && !containerRef.current.contains(e.target)) setOpen(false)
     }
     document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
   }, [])
 
+  // Fetch incoming (pending) friend requests for the current user.
   async function fetchPending() {
     try {
       const res = await axios.get('/api/friends/requests/')
@@ -42,6 +46,7 @@ function FriendList({ user, visibleFriends = [], onVisibleFriendsChange = () => 
     } catch { /* ignore */ }
   }
 
+  // Fetch the accepted friends list for the current user.
   async function fetchFriends() {
     try {
       const res = await axios.get('/api/friends/')
@@ -49,13 +54,11 @@ function FriendList({ user, visibleFriends = [], onVisibleFriendsChange = () => 
     } catch { /* ignore */ }
   }
 
-  // accept or decline a pending friend request
+  // Accept or decline one friend request, then update local UI state.
   async function respond(requestId, action) {
     try {
       await axios.post(`/api/friends/request/${requestId}/respond/`, { action })
-      // remove the request from the list immediately
       setPendingRequests(prev => prev.filter(r => r.id !== requestId))
-      // if accepted, refresh friends so the new one shows up
       if (action === 'accept') fetchFriends()
     } catch { /* ignore */ }
   }
@@ -63,128 +66,103 @@ function FriendList({ user, visibleFriends = [], onVisibleFriendsChange = () => 
   if (!user) return null
 
   return (
-    <div ref={containerRef} className="relative">
-      {/* friend icon with badge that shows the number of pending requests */}
-      <button
-        type="button"
-        className="relative flex items-center rounded-md p-1 hover:bg-muted cursor-pointer"
-        onClick={() => setOpen(prev => !prev)}
-      >
-        <Users size={20} className="text-muted-foreground" />
-        {pendingRequests.length > 0 && (
-          <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold leading-none text-white">
-            {pendingRequests.length}
-          </span>
-        )}
-      </button>
+    <div ref={containerRef} className={s.wrapper}>
+      <TriggerButton count={pendingRequests.length} onClick={() => setOpen(prev => !prev)} />
 
-      {/* dropdown panel with tabs for requests and friends */}
       {open && (
-        <div className="absolute right-0 top-[calc(100%+8px)] z-50 w-[300px] overflow-hidden rounded-lg border border-border bg-white shadow-lg">
-          {/* tab switcher */}
-          <div className="flex border-b border-border">
-            <button
-              type="button"
-              className={`flex-1 cursor-pointer border-b-2 bg-transparent py-2 text-sm ${
-                tab === 'requests'
-                  ? 'border-blue-600 font-semibold text-blue-600'
-                  : 'border-transparent font-normal text-muted-foreground'
-              }`}
-              onClick={() => setTab('requests')}
-            >
-              Requests {pendingRequests.length > 0 && `(${pendingRequests.length})`}
-            </button>
-            <button
-              type="button"
-              className={`flex-1 cursor-pointer border-b-2 bg-transparent py-2 text-sm ${
-                tab === 'friends'
-                  ? 'border-blue-600 font-semibold text-blue-600'
-                  : 'border-transparent font-normal text-muted-foreground'
-              }`}
-              onClick={() => setTab('friends')}
-            >
-              Friends {friends.length > 0 && `(${friends.length})`}
-            </button>
-          </div>
-
-          {/* scrollable content area */}
-          <div className="max-h-72 overflow-y-auto">
-            {tab === 'requests' && (
-              pendingRequests.length === 0 ? (
-                <div className="px-4 py-6 text-center">
-                  <span className="text-sm text-muted-foreground">No pending requests</span>
-                </div>
-              ) : (
-                pendingRequests.map(req => (
-                  <div
-                    key={req.id}
-                    className="flex items-center gap-2 px-3 py-2.5 hover:bg-muted/50"
-                  >
-                    <div className="flex h-[30px] w-[30px] flex-shrink-0 items-center justify-center rounded-full bg-blue-50 text-xs font-semibold text-blue-700">
-                      {req.from_username[0].toUpperCase()}
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-foreground">{req.from_username}</p>
-                      <p className="text-xs text-muted-foreground">wants to be your friend</p>
-                    </div>
-                    <div className="flex gap-1">
-                      <button
-                        type="button"
-                        className="rounded-md bg-green-500 px-2 py-1 text-white hover:bg-green-600 cursor-pointer"
-                        onClick={() => respond(req.id, 'accept')}
-                      >
-                        <Check size={14} />
-                      </button>
-                      <button
-                        type="button"
-                        className="rounded-md bg-red-500 px-2 py-1 text-white hover:bg-red-600 cursor-pointer"
-                        onClick={() => respond(req.id, 'decline')}
-                      >
-                        <X size={14} />
-                      </button>
-                    </div>
-                  </div>
-                ))
-              )
-            )}
-
-            {tab === 'friends' && (
-              friends.length === 0 ? (
-                <div className="px-4 py-6 text-center">
-                  <span className="text-sm text-muted-foreground">No friends yet</span>
-                </div>
-              ) : (
-                friends.map(f => (
-                  <div
-                    key={f.id}
-                    className="flex items-center gap-2 px-3 py-2.5 hover:bg-muted/50"
-                  >
-                    {/* checkbox toggles whether this friend's events show on the calendar */}
-                    <input
-                      type="checkbox"
-                      checked={visibleFriends.includes(f.id)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          onVisibleFriendsChange([...visibleFriends, f.id])
-                        } else {
-                          onVisibleFriendsChange(visibleFriends.filter(id => id !== f.id))
-                        }
-                      }}
-                      className="h-4 w-4 cursor-pointer"
-                    />
-                    <div className="flex h-[30px] w-[30px] flex-shrink-0 items-center justify-center rounded-full bg-blue-50 text-xs font-semibold text-blue-700">
-                      {f.username[0].toUpperCase()}
-                    </div>
-                    <p className="text-sm font-medium text-foreground">{f.username}</p>
-                  </div>
-                ))
-              )
-            )}
+        <div className={s.dropdown}>
+          <TabBar tab={tab} setTab={setTab} pendingCount={pendingRequests.length} friendCount={friends.length} />
+          <div className={s.scrollArea}>
+            {tab === 'requests' && <RequestsTab requests={pendingRequests} onRespond={respond} />}
+            {tab === 'friends' && <FriendsTab friends={friends} visibleFriends={visibleFriends} onVisibleFriendsChange={onVisibleFriendsChange} />}
           </div>
         </div>
       )}
     </div>
   )
+}
+
+// Small icon button that opens/closes the friend dropdown.
+// Shows a red badge if there are pending requests.
+function TriggerButton({ count, onClick }) {
+  return (
+    <button type="button" className={s.trigger} onClick={onClick}>
+      <Users size={20} />
+      {count > 0 && <span className={s.badge}>{count}</span>}
+    </button>
+  )
+}
+
+// Top tab bar used to switch between Requests and Friends views.
+function TabBar({ tab, setTab, pendingCount, friendCount }) {
+  const tabClass = (key) => `${s.tab} ${tab === key ? s.active : ''}`
+
+  return (
+    <div className={s.tabBar}>
+      <button type="button" className={tabClass('requests')} onClick={() => setTab('requests')}>
+        Requests {pendingCount > 0 && `(${pendingCount})`}
+      </button>
+      <button type="button" className={tabClass('friends')} onClick={() => setTab('friends')}>
+        Friends {friendCount > 0 && `(${friendCount})`}
+      </button>
+    </div>
+  )
+}
+
+// Circular user initial avatar used in both list types.
+function Avatar({ letter }) {
+  return <div className={s.avatar}>{letter[0].toUpperCase()}</div>
+}
+
+// Reusable empty-state row when there is no data to show.
+function EmptyState({ message }) {
+  return <div className={s.empty}>{message}</div>
+}
+
+// Requests tab content:
+// - shows all pending requests
+// - provides accept/decline actions
+function RequestsTab({ requests, onRespond }) {
+  if (requests.length === 0) return <EmptyState message="No pending requests" />
+
+  return requests.map(req => (
+    <div key={req.id} className={s.row}>
+      <Avatar letter={req.from_username} />
+      <div style={{ flex: 1 }}>
+        <p className={s.name}>{req.from_username}</p>
+        <p className={s.subtitle}>wants to be your friend</p>
+      </div>
+      <div style={{ display: 'flex', gap: 4 }}>
+        <button type="button" className={s.acceptBtn} onClick={() => onRespond(req.id, 'accept')}>
+          <Check size={14} />
+        </button>
+        <button type="button" className={s.declineBtn} onClick={() => onRespond(req.id, 'decline')}>
+          <X size={14} />
+        </button>
+      </div>
+    </div>
+  ))
+}
+
+// Friends tab content:
+// - shows accepted friends
+// - checkbox toggles whether each friend's events are visible
+function FriendsTab({ friends, visibleFriends, onVisibleFriendsChange }) {
+  if (friends.length === 0) return <EmptyState message="No friends yet" />
+
+  // Toggle one friend id in the visible friends list.
+  function toggle(id, checked) {
+    if (checked) onVisibleFriendsChange([...visibleFriends, id])
+    else onVisibleFriendsChange(visibleFriends.filter(fid => fid !== id))
+  }
+
+  return friends.map(f => (
+    <div key={f.id} className={s.row}>
+      <input type="checkbox" checked={visibleFriends.includes(f.id)} onChange={e => toggle(f.id, e.target.checked)} className={s.checkbox} />
+      <Avatar letter={f.username} />
+      <p className={s.name}>{f.username}</p>
+    </div>
+  ))
 }
 
 export default FriendList
