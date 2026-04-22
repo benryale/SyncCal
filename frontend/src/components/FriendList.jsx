@@ -10,6 +10,8 @@ function FriendList({ user, visibleFriends = [], onVisibleFriendsChange = () => 
   const [pendingRequests, setPendingRequests] = useState([])
   const [friends, setFriends] = useState([])
   const containerRef = useRef(null)
+  // track the previous request count so we only toast when a new one comes in
+  const lastCountRef = useRef(null)
 
   // refresh both lists whenever the dropdown opens
   useEffect(() => {
@@ -40,6 +42,15 @@ function FriendList({ user, visibleFriends = [], onVisibleFriendsChange = () => 
   async function fetchPending() {
     try {
       const res = await axios.get('/api/friends/requests/')
+      const newCount = res.data.length
+
+      // first fetch after login: just set the baseline, no toast yet
+      if (lastCountRef.current !== null && newCount > lastCountRef.current) {
+        const diff = newCount - lastCountRef.current
+        toast(diff === 1 ? 'New friend request' : `${diff} new friend requests`)
+      }
+      lastCountRef.current = newCount
+
       setPendingRequests(res.data)
     } catch { /* ignore */ }
   }
