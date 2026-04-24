@@ -5,4 +5,4 @@ class EventsConfig(AppConfig):
     name = 'events'
 
     def ready(self):
-        import events.signals  # noqa: F401 — registers post_save / post_delete handlers
+        import events.signals  # noqa: F401 – registers post_save / post_delete handlers
