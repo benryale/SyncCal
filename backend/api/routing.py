@@ -1,2 +1,6 @@
-# WebSocket routes will be added in the WebSocket Foundation phase
-websocket_urlpatterns = []
+from django.urls import re_path
+from . import consumers
+
+websocket_urlpatterns = [
+    re_path(r'^ws/synccal/$', consumers.SyncCalConsumer.as_asgi()),
+]
