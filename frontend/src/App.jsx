@@ -1,15 +1,12 @@
-/**
- * App.jsx — wraps the app in WebSocketProvider so every component
- * can subscribe to real-time messages via useWebSocket().
- * The WebSocket connection opens after login and reconnects on logout/login.
- */
 import { useState, useEffect } from 'react'
 import AuthPage from './components/AuthPage'
 import Calendar from './components/Calendar'
 import LandingPage from './components/LandingPage'
+import ProfilePage from './components/ProfilePage'
 import NavBar from './components/NavBar'
 import { Toaster } from './components/ui/sonner'
 import { WebSocketProvider } from './context/WebSocketContext'
+import { toast } from 'sonner'
 
 function App() {
   const [user, setUser]                     = useState(null)
@@ -38,9 +35,25 @@ function App() {
     setPage('landing')
   }
 
+  const handleUserUpdate = (updatedUser) => {
+    setUser(updatedUser)
+    if (updatedUser.timezone) localStorage.setItem('timezone', updatedUser.timezone)
+  }
+
+  const handleAuth = (data, isNewAccount = false) => {
+    const tz = data.timezone || 'UTC'
+    setUser({ id: data.id, username: data.username, timezone: tz })
+    localStorage.setItem('token', data.token)
+    if (data.id != null) localStorage.setItem('id', String(data.id))
+    if (data.username) localStorage.setItem('username', data.username)
+    localStorage.setItem('timezone', tz)
+    setPage('calendar')
+    if (isNewAccount) {
+      toast.success(`Welcome to SyncCal, ${data.username}! 🎉`)
+    }
+  }
+
   return (
-    // WebSocketProvider wraps everything so NavBar + Calendar + FriendList
-    // all share ONE WebSocket connection.
     <WebSocketProvider>
       <div className="min-h-screen bg-background">
         <NavBar
@@ -48,36 +61,33 @@ function App() {
           onLogout={handleLogout}
           onLoginClick={() => { setAuthMode('login'); setPage('login') }}
           onSignUpClick={() => { setAuthMode('register'); setPage('login') }}
-          onLogoClick={() => setPage('landing')}
+          onLogoClick={() => setPage(user ? 'calendar' : 'landing')}
+          onProfileClick={() => setPage('profile')}
           visibleFriends={visibleFriends}
           onVisibleFriendsChange={setVisibleFriends}
         />
 
         {page === 'landing' && (
-          <LandingPage onGetStarted={() => setPage('calendar')} />
+          <LandingPage onGetStarted={() => user ? setPage('calendar') : setPage('login')} />
         )}
 
         {page === 'login' && !user && (
           <div className="px-6 py-6">
             <AuthPage
               initialMode={authMode}
-              onAuth={(data) => {
-                const tz = data.timezone || 'UTC'
-                setUser({ id: data.id, username: data.username, timezone: tz })
-                localStorage.setItem('token', data.token)
-                if (data.id != null) localStorage.setItem('id', String(data.id))
-                if (data.username) localStorage.setItem('username', data.username)
-                localStorage.setItem('timezone', tz)
-                setPage('calendar')
-              }}
+              onAuth={(data) => handleAuth(data, authMode === 'register')}
             />
           </div>
         )}
 
-        {page === 'calendar' && (
+        {page === 'calendar' && user && (
           <div className="px-6 py-6">
             <Calendar visibleFriends={visibleFriends} user={user} />
           </div>
+        )}
+
+        {page === 'profile' && user && (
+          <ProfilePage user={user} onUserUpdate={handleUserUpdate} />
         )}
 
         <Toaster position="bottom-right" />

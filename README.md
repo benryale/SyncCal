@@ -2,7 +2,7 @@
 
 A collaborative calendar application for identifying mutual free time across multiple users.
 
-**Team:** AJ, April, Ben, Kevin, Theia, Yassin
+**Team:** AJ, April, Ben, Kevin, Diya, Yassin
 
 ## Stack
 - **Frontend:** React + FullCalendar + Vite
