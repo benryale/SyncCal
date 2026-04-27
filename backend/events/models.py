@@ -25,6 +25,7 @@ class EventSeries(models.Model):
     shared_with = models.ManyToManyField('auth.User', related_name='events_shared_with_me', blank=True)
     rrule = models.TextField(null=True, blank=True) # iCal RRULE text; NULL = non-recurring
     timezone = models.CharField(max_length=64, default='UTC') # IANA timezone for RRULE expansion
+    color = models.CharField(max_length=7, default="#3B82F6", blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
