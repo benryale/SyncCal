@@ -29,6 +29,18 @@ const FRIEND_COLORS = [
   { bg: '#6366f1', border: '#4f46e5' },
 ];
 
+const EVENT_COLORS = [
+  { label: 'Blue',   value: '#3B82F6' },
+  { label: 'Purple', value: '#8B5CF6' },
+  { label: 'Green',  value: '#10B981' },
+  { label: 'Red',    value: '#EF4444' },
+  { label: 'Orange', value: '#F97316' },
+  { label: 'Pink',   value: '#EC4899' },
+  { label: 'Teal',   value: '#06B6D4' },
+  { label: 'Yellow', value: '#F59E0B' },
+  { label: 'Gray',   value: '#6B7280' },
+];
+
 axios.interceptors.request.use(cfg => {
   const token = localStorage.getItem('token');
   if (token) cfg.headers.Authorization = `Token ${token}`;
@@ -49,6 +61,7 @@ const formatForInput = (utcValue, tz) => {
 const makeInitialForm = (tz) => ({
   title: '', start_date: '', end_date: '', priority: 1,
   description: '', location: '', shared_with: '', timezone: tz,
+  color: '#3B82F6',
 });
 
 const isSameOrAfterToday = (date) => {
@@ -65,10 +78,13 @@ const eventOverlapsDate = (ev, date) => {
 
 const toFcEvent = (ev) => ({
   id: ev.id, title: ev.title, start: ev.start_date, end: ev.end_date,
+  backgroundColor: ev.color || '#3B82F6',
+  borderColor: ev.color || '#3B82F6',
   extendedProps: {
     organizer: ev.organizer, timezone: ev.timezone,
     location: ev.location, description: ev.description,
     priority: ev.priority, shared_with: ev.shared_with,
+    color: ev.color || '#3B82F6',
   },
 });
 
@@ -106,7 +122,7 @@ const detectConflicts = (start, end, events, editId = null) => {
   });
 };
 
-const ONBOARDING_KEY = 'synccal_onboarded';
+// onboarding key is per-user, built dynamically from user.id
 
 const TOUR_STEPS = [
   {
@@ -117,12 +133,12 @@ const TOUR_STEPS = [
   {
     icon: <Wifi className="size-8 text-green-500" />,
     title: 'Live collaboration',
-    body: "Changes appear instantly across all tabs and for friends viewing your calendar. The green WiFi icon means you're connected live.",
+    body: "Changes appear instantly across all tabs and for friends viewing your calendar.",
   },
   {
     icon: <AlertTriangle className="size-8 text-amber-500" />,
     title: 'Conflict detection',
-    body: 'When creating events, an amber warning appears if the time overlaps an existing event on your calendar.',
+    body: 'An amber warning appears if a new event overlaps an existing one.',
   },
   {
     icon: <Keyboard className="size-8 text-orange-500" />,
@@ -195,7 +211,6 @@ function ShortcutsModal({ onClose }) {
 const Calendar = ({ visibleFriends = [], user }) => {
   const userTz = user?.timezone || 'UTC';
   const [events, setEvents]               = useState([]);
-  const [filteredEvents, setFilteredEvents] = useState(null);
   const [showModal, setShowModal]         = useState(false);
   const [isSubmitting, setSubmitting]     = useState(false);
   const [formData, setFormData]           = useState(() => makeInitialForm(userTz));
@@ -212,11 +227,13 @@ const Calendar = ({ visibleFriends = [], user }) => {
   const { connected, subscribe } = useWebSocket();
 
   useEffect(() => {
-    if (!localStorage.getItem(ONBOARDING_KEY)) setShowOnboarding(true);
-  }, []);
+    if (!user?.id) return;
+    const key = `synccal_onboarded_${user.id}`;
+    if (!localStorage.getItem(key)) setShowOnboarding(true);
+  }, [user?.id]);
 
   const finishOnboarding = () => {
-    localStorage.setItem(ONBOARDING_KEY, '1');
+    if (user?.id) localStorage.setItem(`synccal_onboarded_${user.id}`, '1');
     setShowOnboarding(false);
   };
 
@@ -254,7 +271,7 @@ const Calendar = ({ visibleFriends = [], user }) => {
         } else if (action === 'updated') {
           if (ev.organizer_id === user?.id) {
             setEvents(prev => prev.map(e => String(e.id) === String(ev.id) ? toFcEvent(ev) : e));
-            toast.info('Calendar updated', { description: `"${ev.title}" was changed`, duration: 2500 });
+            toast.info('📅 Shared event updated', { description: `"${ev.title}" was modified`, duration: 3000 });
           } else if (visibleFriends.includes(ev.organizer_id)) {
             setEvents(prev => prev.map(e => e.id === `friend-${ev.id}` ? toFriendFcEvent(ev) : e));
           }
@@ -267,17 +284,24 @@ const Calendar = ({ visibleFriends = [], user }) => {
         }
         return;
       }
-      if (msg.type === 'invite' && msg.action === 'created') {
-        setInvites(prev => {
-          if (prev.some(i => i.id === msg.id)) return prev;
-          toast('New event invite', { description: msg.event_title });
-          return [...prev, {
-            id: msg.id, event_id: msg.event_id,
-            event_title: msg.event_title, event_start: msg.event_start,
-            event_end: msg.event_end, organizer_username: msg.organizer_username,
-            status: 'pending',
-          }];
-        });
+      if (msg.type === 'invite') {
+        if (msg.action === 'created') {
+          setInvites(prev => {
+            if (prev.some(i => i.id === msg.id)) return prev;
+            toast('🔔 New event invite', { description: `${msg.organizer_username} invited you to "${msg.event_title}"` });
+            return [...prev, {
+              id: msg.id, event_id: msg.event_id,
+              event_title: msg.event_title, event_start: msg.event_start,
+              event_end: msg.event_end, organizer_username: msg.organizer_username,
+              status: 'pending',
+            }];
+          });
+        } else if (msg.action === 'accepted') {
+          // Someone accepted our invite — notify the organizer
+          toast.success('Invite accepted', { description: `${msg.invitee_username || 'Someone'} accepted your invite to "${msg.event_title}"` });
+        } else if (msg.action === 'declined') {
+          toast('Invite declined', { description: `${msg.invitee_username || 'Someone'} declined your invite to "${msg.event_title}"` });
+        }
       }
     });
     return unsub;
@@ -354,6 +378,7 @@ const Calendar = ({ visibleFriends = [], user }) => {
       shared_with: ev.extendedProps.shared_with
         ? (Array.isArray(ev.extendedProps.shared_with) ? ev.extendedProps.shared_with.join(', ') : ev.extendedProps.shared_with)
         : '',
+      color: ev.extendedProps.color || '#3B82F6',
     });
     setShowModal(true);
   };
@@ -377,6 +402,7 @@ const Calendar = ({ visibleFriends = [], user }) => {
         start_date: fromZonedTime(formData.start_date, tz).toISOString(),
         end_date:   fromZonedTime(formData.end_date,   tz).toISOString(),
         timezone: tz, priority: formData.priority,
+        color: formData.color,
       };
       let eventId = selectedId;
       if (selectedId) {
@@ -407,6 +433,7 @@ const Calendar = ({ visibleFriends = [], user }) => {
         title: info.event.title,
         start_date: info.event.start.toISOString(),
         end_date: (info.event.end || info.event.start).toISOString(),
+        color: info.event.extendedProps?.color || '#3B82F6',
       });
       toast.success('Event moved');
     } catch { toast.error("Couldn't move that event."); info.revert(); }
@@ -418,6 +445,7 @@ const Calendar = ({ visibleFriends = [], user }) => {
         title: info.event.title,
         start_date: info.event.start.toISOString(),
         end_date: info.event.end.toISOString(),
+        color: info.event.extendedProps?.color || '#3B82F6',
       });
       toast.success('Event updated');
     } catch { toast.error("Couldn't resize that event."); info.revert(); }
@@ -474,22 +502,16 @@ const Calendar = ({ visibleFriends = [], user }) => {
     return events.some(ev => eventOverlapsDate(ev, arg.date)) ? [] : ['sync-empty-day'];
   };
 
-  const calendarEvents = filteredEvents !== null ? filteredEvents : events;
-
   return (
     <div>
       {showOnboarding && <OnboardingModal onDone={finishOnboarding} />}
       {showShortcuts && <ShortcutsModal onClose={() => setShowShortcuts(false)} />}
       <EventHoverTooltip tooltip={hoveredTip} />
 
-      {/* ── Top bar: search left, icons right — no overlap ── */}
-      <div className="mb-3 flex items-center justify-between gap-4">
-        {/* Search/filter takes up left side */}
-        <div className="flex-1">
-          <EventSearchFilter events={events} onFilter={setFilteredEvents} />
-        </div>
+      {/* Top bar: search left, icons right */}
+      <div className="mb-3 flex items-center gap-3">
+        <EventSearchFilter events={events} calendarRef={calRef} />
 
-        {/* Icons pinned to right */}
         <div className="flex items-center gap-2 shrink-0">
           <button
             title={connected ? 'Live — click for shortcuts' : 'Reconnecting…'}
@@ -500,10 +522,7 @@ const Calendar = ({ visibleFriends = [], user }) => {
               ? <Wifi className="size-4 text-green-500" />
               : <WifiOff className="size-4 text-muted-foreground animate-pulse" />}
           </button>
-
           <ThemeToggle />
-
-          {/* Bell */}
           <div className="relative">
             <Button variant="outline" size="icon" className="relative rounded-full"
               onClick={() => setShowBell(v => !v)}>
@@ -566,14 +585,13 @@ const Calendar = ({ visibleFriends = [], user }) => {
         </div>
       </div>
 
-      {/* FullCalendar */}
       <FullCalendar
         ref={calRef}
         timeZone={userTz}
         plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
         initialView="dayGridMonth"
         headerToolbar={{ left: 'title', center: 'dayGridMonth,timeGridWeek,timeGridDay', right: 'prev,next today' }}
-        events={calendarEvents}
+        events={events}
         dateClick={handleDateClick}
         dayCellClassNames={getDayCellClass}
         eventClick={handleEventClick}
@@ -586,7 +604,6 @@ const Calendar = ({ visibleFriends = [], user }) => {
         eventDisplay="block"
       />
 
-      {/* Event modal */}
       <Dialog open={showModal} onOpenChange={(open) => { if (!open) closeModal(); }}>
         <DialogContent className="p-0 sm:max-w-md overflow-visible">
           <DialogHeader className="px-6 pt-5 pb-1 text-center">
@@ -599,13 +616,48 @@ const Calendar = ({ visibleFriends = [], user }) => {
           </DialogHeader>
           <form onSubmit={handleSubmit} className="grid">
             <div className="grid gap-4 px-6 pb-5">
+
+              {/* Title + color picker row */}
               <div className="grid gap-1.5">
                 <Label htmlFor="title" className="text-sm font-medium">Event title</Label>
-                <Input id="title" name="title" value={formData.title}
-                  onChange={handleInputChange}
-                  placeholder="Study group, office hours, dinner plans"
-                  className="h-10 bg-muted/50" required />
+                <div className="flex gap-2">
+                  <Input id="title" name="title" value={formData.title}
+                    onChange={handleInputChange}
+                    placeholder="Study group, office hours, dinner plans"
+                    className="h-10 bg-muted/50 flex-1" required />
+                  {/* color picker */}
+                  <div className="relative shrink-0">
+                    <input
+                      type="color"
+                      value={formData.color}
+                      onChange={e => setFormData(f => ({ ...f, color: e.target.value }))}
+                      className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                      title="Pick event color"
+                    />
+                    <div
+                      className="h-10 w-10 rounded-md border border-border cursor-pointer flex items-center justify-center"
+                      style={{ backgroundColor: formData.color }}
+                      title="Pick event color"
+                    />
+                  </div>
+                </div>
+                {/* Color swatches */}
+                <div className="flex gap-1.5 flex-wrap">
+                  {EVENT_COLORS.map(c => (
+                    <button
+                      key={c.value}
+                      type="button"
+                      title={c.label}
+                      onClick={() => setFormData(f => ({ ...f, color: c.value }))}
+                      className={`size-5 rounded-full border-2 transition-transform hover:scale-110 ${
+                        formData.color === c.value ? 'border-foreground scale-110' : 'border-transparent'
+                      }`}
+                      style={{ backgroundColor: c.value }}
+                    />
+                  ))}
+                </div>
               </div>
+
               <div className="grid gap-3 rounded-lg border bg-muted/30 p-4 sm:grid-cols-2">
                 <div className="grid gap-1.5">
                   <Label htmlFor="start_date" className="flex items-center gap-1.5 text-sm font-medium">
@@ -622,6 +674,7 @@ const Calendar = ({ visibleFriends = [], user }) => {
                     value={formData.end_date} onChange={handleInputChange} className="h-10" required />
                 </div>
               </div>
+
               {formConflicts.length > 0 && !hasInvalidRange && (
                 <div className="flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2.5 text-sm text-amber-800 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-300">
                   <AlertTriangle className="mt-0.5 size-4 shrink-0" />
@@ -631,16 +684,19 @@ const Calendar = ({ visibleFriends = [], user }) => {
                   </div>
                 </div>
               )}
+
               <div className="grid gap-1.5">
                 <Label htmlFor="location" className="text-sm font-medium">Location</Label>
                 <Input id="location" name="location" value={formData.location}
                   onChange={handleInputChange} placeholder="Zoom, library, dining hall" className="h-10" />
               </div>
+
               <div className="grid gap-1.5">
                 <Label htmlFor="description" className="text-sm font-medium">Description</Label>
                 <Input id="description" name="description" value={formData.description}
                   onChange={handleInputChange} placeholder="Any extra details" className="h-10" />
               </div>
+
               <div className="grid gap-1.5">
                 <Label className="text-sm font-medium">Share with Friends</Label>
                 <FriendShareSelector value={formData.shared_with} onChange={handleInputChange} />
@@ -648,10 +704,12 @@ const Calendar = ({ visibleFriends = [], user }) => {
                   Invited friends will receive a notification instantly.
                 </p>
               </div>
+
               {hasInvalidRange && (
                 <p className="text-sm text-red-500">End time must be after the start time.</p>
               )}
             </div>
+
             <div className="flex items-center justify-between border-t bg-muted/20 px-6 py-3">
               <div>
                 {selectedId && (

@@ -1,159 +1,110 @@
 /**
  * EventSearchFilter.jsx
  * ---------------------
- * A search + filter bar that sits above the FullCalendar.
- * Props:
- *   events       – the full FullCalendar event array
- *   onFilter     – callback(filteredEvents) called whenever the filter changes
- *   onClear      – called when the user clears all filters
+ * Autocomplete dropdown search — as you type, shows matching events.
+ * Clicking a result navigates the FullCalendar to that event's date.
  */
 import { useState, useEffect, useRef } from 'react'
-import { Search, X, Filter } from 'lucide-react'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
+import { Search, X, Calendar } from 'lucide-react'
+import { format } from 'date-fns'
 
-function EventSearchFilter({ events, onFilter }) {
-  const [query, setQuery]         = useState('')
-  const [startDate, setStartDate] = useState('')
-  const [endDate, setEndDate]     = useState('')
-  const [showFilters, setShowFilters] = useState(false)
-  const isFiltering = query || startDate || endDate
+function EventSearchFilter({ events, calendarRef }) {
+  const [query, setQuery]       = useState('')
+  const [open, setOpen]         = useState(false)
+  const [results, setResults]   = useState([])
+  const containerRef            = useRef(null)
+  const inputRef                = useRef(null)
 
-  // re-run filter whenever inputs or events change
+  // filter events as user types
   useEffect(() => {
-    if (!isFiltering) {
-      onFilter(null) // null = show all events
-      return
-    }
+    const q = query.trim().toLowerCase()
+    if (!q) { setResults([]); setOpen(false); return }
 
-    const q = query.toLowerCase().trim()
+    const matches = events
+      .filter(ev => !ev.extendedProps?.isFriendEvent)
+      .filter(ev => ev.title.toLowerCase().includes(q))
+      .slice(0, 8) // max 8 results
 
-    const filtered = events.filter(ev => {
-      // title search
-      if (q && !ev.title.toLowerCase().includes(q)) return false
+    setResults(matches)
+    setOpen(matches.length > 0)
+  }, [query, events])
 
-      // skip friend overlay events from search results
-      if (ev.extendedProps?.isFriendEvent) return false
-
-      // date range filter
-      const evStart = new Date(ev.start)
-      if (startDate && evStart < new Date(startDate)) return false
-      if (endDate) {
-        const rangeEnd = new Date(endDate)
-        rangeEnd.setHours(23, 59, 59, 999)
-        if (evStart > rangeEnd) return false
+  // close on outside click
+  useEffect(() => {
+    const handler = (e) => {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setOpen(false)
       }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
 
-      return true
-    })
-
-    onFilter(filtered)
-  }, [query, startDate, endDate, events])
-
-  const handleClear = () => {
+  const handleSelect = (ev) => {
+    // navigate calendar to the event's date
+    if (calendarRef?.current) {
+      const api = calendarRef.current.getApi()
+      api.gotoDate(new Date(ev.start))
+      // switch to week view so the event is clearly visible
+      api.changeView('timeGridWeek')
+    }
     setQuery('')
-    setStartDate('')
-    setEndDate('')
-    setShowFilters(false)
-    onFilter(null)
+    setOpen(false)
+  }
+
+  const formatEventDate = (dateStr) => {
+    try {
+      return format(new Date(dateStr), 'MMM d, yyyy')
+    } catch {
+      return ''
+    }
   }
 
   return (
-    <div className="mb-4">
-      <div className="flex items-center gap-2">
-        {/* Search input */}
-        <div className="relative flex-1">
-          <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Search events by title…"
-            value={query}
-            onChange={e => setQuery(e.target.value)}
-            className="pl-8 pr-8 h-9"
-          />
-          {query && (
-            <button
-              onClick={() => setQuery('')}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-            >
-              <X className="size-4" />
-            </button>
-          )}
-        </div>
-
-        {/* Toggle date filters */}
-        <Button
-          variant={showFilters ? 'secondary' : 'outline'}
-          size="sm"
-          className="h-9 gap-1.5 shrink-0"
-          onClick={() => setShowFilters(v => !v)}
-        >
-          <Filter className="size-3.5" />
-          Date filter
-          {(startDate || endDate) && (
-            <span className="ml-1 flex h-4 w-4 items-center justify-center rounded-full bg-blue-500 text-[10px] font-bold text-white">
-              !
-            </span>
-          )}
-        </Button>
-
-        {/* Clear all */}
-        {isFiltering && (
-          <Button variant="ghost" size="sm" className="h-9 shrink-0" onClick={handleClear}>
-            <X className="size-4 mr-1" /> Clear
-          </Button>
+    <div ref={containerRef} className="relative flex-1">
+      <div className="relative">
+        <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+        <input
+          ref={inputRef}
+          placeholder="Search events…"
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          onFocus={() => results.length > 0 && setOpen(true)}
+          className="w-full rounded-md border border-border bg-muted/50 py-1.5 pl-8 pr-8 text-sm text-foreground focus:border-blue-400 focus:bg-card focus:outline-none"
+        />
+        {query && (
+          <button
+            onClick={() => { setQuery(''); setOpen(false) }}
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+          >
+            <X className="size-4" />
+          </button>
         )}
       </div>
 
-      {/* Date range inputs */}
-      {showFilters && (
-        <div className="mt-2 flex items-center gap-3 rounded-lg border border-border bg-muted/30 px-4 py-3">
-          <span className="text-sm text-muted-foreground shrink-0">From</span>
-          <input
-            type="date"
-            value={startDate}
-            onChange={e => setStartDate(e.target.value)}
-            className="rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-400"
-          />
-          <span className="text-sm text-muted-foreground shrink-0">to</span>
-          <input
-            type="date"
-            value={endDate}
-            onChange={e => setEndDate(e.target.value)}
-            min={startDate}
-            className="rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-400"
-          />
-          {(startDate || endDate) && (
+      {open && (
+        <div className="absolute left-0 right-0 top-[calc(100%+4px)] z-50 max-h-72 overflow-y-auto rounded-lg border border-border bg-popover shadow-lg">
+          {results.map(ev => (
             <button
-              onClick={() => { setStartDate(''); setEndDate('') }}
-              className="text-xs text-muted-foreground hover:text-foreground hover:underline"
+              key={ev.id}
+              onClick={() => handleSelect(ev)}
+              className="flex w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-muted/60 transition-colors"
             >
-              Reset dates
+              {/* color dot */}
+              <span
+                className="size-3 shrink-0 rounded-full"
+                style={{ backgroundColor: ev.extendedProps?.color || ev.backgroundColor || '#3B82F6' }}
+              />
+              <div className="flex-1 min-w-0">
+                <p className="truncate text-sm font-medium text-foreground">{ev.title}</p>
+                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Calendar className="size-3" />
+                  {formatEventDate(ev.start)}
+                </p>
+              </div>
             </button>
-          )}
+          ))}
         </div>
-      )}
-
-      {/* Result count when filtering */}
-      {isFiltering && (
-        <p className="mt-1.5 text-xs text-muted-foreground">
-          {events.filter(ev => !ev.extendedProps?.isFriendEvent).length === 0
-            ? 'No events found'
-            : `Showing ${
-                events.filter(ev => {
-                  if (ev.extendedProps?.isFriendEvent) return false
-                  const q = query.toLowerCase().trim()
-                  if (q && !ev.title.toLowerCase().includes(q)) return false
-                  const evStart = new Date(ev.start)
-                  if (startDate && evStart < new Date(startDate)) return false
-                  if (endDate) {
-                    const re = new Date(endDate); re.setHours(23,59,59,999)
-                    if (evStart > re) return false
-                  }
-                  return true
-                }).length
-              } event(s)`
-          }
-        </p>
       )}
     </div>
   )

@@ -45,7 +45,7 @@ class EventSeriesSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'title', 'category', 'dtstart', 'duration', 'priority',
             'description', 'location', 'organizer', 'shared_with',
-            'rrule', 'timezone', 'created_at', 'updated_at',
+            'rrule', 'timezone', 'color', 'created_at', 'updated_at',
             'start_date', 'end_date',
         ]
         read_only_fields = ['created_at', 'updated_at']
