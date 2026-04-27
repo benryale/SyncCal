@@ -50,6 +50,7 @@ def _serialize_event(ev: EventSeries) -> dict:
         'priority': ev.priority,
         'organizer': ev.organizer.username,
         'organizer_id': ev.organizer_id,
+        'color': getattr(ev, 'color', '#3B82F6') or '#3B82F6',
         'rrule': ev.rrule,
     }
 
@@ -124,6 +125,7 @@ def on_invite_saved(sender, instance: EventInvite, created: bool, **kwargs):
         'event_start': ev.dtstart.isoformat(),
         'event_end': end.isoformat() if hasattr(end, 'isoformat') else str(end),
         'organizer_username': ev.organizer.username,
+        'invitee_username': instance.user.username,
         'status': instance.status,
     }
 

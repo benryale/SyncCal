@@ -47,10 +47,14 @@ function App() {
     if (data.id != null) localStorage.setItem('id', String(data.id))
     if (data.username) localStorage.setItem('username', data.username)
     localStorage.setItem('timezone', tz)
-    setPage('calendar')
+
     if (isNewAccount) {
+      // Clear the per-user onboarding flag so new users always see the tour
+      localStorage.removeItem(`synccal_onboarded_${data.id}`)
       toast.success(`Welcome to SyncCal, ${data.username}! 🎉`)
     }
+
+    setPage('calendar')
   }
 
   return (
