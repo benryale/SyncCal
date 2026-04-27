@@ -23,35 +23,22 @@ def health(request):
 
 @csrf_exempt
 def search_users(request):
-    ## check method if is GET 
     if request.method != 'GET':
-        ## if is not return error
         return JsonResponse({'error': 'Method not allowed'}, status=405)
     
-    ## extracts and clean the search query from url 
     q = request.GET.get('q', '').strip()
     if not q:
         return JsonResponse([], safe=False)
     
-    ## search for users and exclude oneself 
     qs = User.objects.filter(username__icontains=q)
     if request.user.is_authenticated:
         qs = qs.exclude(id=request.user.id)
-    ## extracts user data from the database query, limits results, and executes it
     users = list(qs.values('id', 'username', 'email')[:20])
     
-    
-    ## check if the user is authenticated
-    ## checks what friend requests exist between the logged-in user and each search result. 
-    ## It determines whether to show "Add Friend", "Pending", or "Friends" buttons.
     if request.user.is_authenticated:
-        
         sent = set(FriendRequest.objects.filter(
-            # WHERE sender = me
             from_user=request.user,
-            # AND receiver = any search result
             to_user_id__in=[u['id'] for u in users]
-            # GET (receiver_id, status)
         ).values_list('to_user_id', 'status'))
         received = set(FriendRequest.objects.filter(
             to_user=request.user,
@@ -63,7 +50,7 @@ def search_users(request):
 
         for u in users:
             if u['id'] in sent_map:
-                u['friend_status'] = sent_map[u['id']]  # 'pending' or 'accepted'
+                u['friend_status'] = sent_map[u['id']]
             elif u['id'] in received_map:
                 u['friend_status'] = received_map[u['id']]
             else:
@@ -112,7 +99,7 @@ def respond_to_friend_request(request, request_id):
         return JsonResponse({'error': 'Method not allowed'}, status=405)
 
     data = json.loads(request.body)
-    action = data.get('action')  # 'accept' or 'decline'
+    action = data.get('action')
 
     if action not in ('accept', 'decline'):
         return JsonResponse({'error': 'Invalid action. Use "accept" or "decline".'}, status=400)
@@ -153,45 +140,39 @@ def list_friend_requests(request):
 @permission_classes([IsAuthenticated])
 def list_friends(request):
     user = request.user
-    
-    #firdst we get all accepted requests where the user is either the sender or the receiver
     accepted_requests = FriendRequest.objects.filter(
         (Q(from_user=user) | Q(to_user=user)),
-        status = 'accepted'
+        status='accepted'
     )
-    
-    #extract the other user from each relationship
     friends = []
     for req in accepted_requests:
         if req.from_user == user:
-            friends.append(req.to_user) # if the user is the sender, the friend is the receiver
+            friends.append(req.to_user)
         else:
-            friends.append(req.from_user) # if the user is the receiver, the friend is the sender
+            friends.append(req.from_user)
         
     friend_data = [{'id': friend.id, 'username': friend.username} for friend in friends]
     return Response(friend_data)
 
 @csrf_exempt
 def register(request):
-    # Only accept POST requests
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
 
-    # Parse JSON body to extract username, email, password
     data = json.loads(request.body)
     username = data.get('username')
     email = data.get('email')
     password = data.get('password')
     tz_hint = data.get('timezone')
 
-    # Check if username already exists in database
     if User.objects.filter(username=username).exists():
         return JsonResponse({'error': 'Username already taken'}, status=400)
 
-    # Create new user with hashed password (Django handles hashing automatically).
     user = User.objects.create_user(username=username, email=email, password=password)
 
-    # apply browser-detected tz if client sent one; ignore bad values
+    # Always create the profile explicitly — never rely on signals alone
+    profile, _ = UserProfile.objects.get_or_create(user=user, defaults={'timezone': 'UTC'})
+
     if tz_hint:
         try:
             validate_iana_timezone(tz_hint)
@@ -201,44 +182,36 @@ def register(request):
                 tz_hint, user.username,
             )
         else:
-            user.profile.timezone = tz_hint
-            user.profile.save(update_fields=['timezone', 'updated_at'])
+            profile.timezone = tz_hint
+            profile.save(update_fields=['timezone', 'updated_at'])
 
     token, _ = Token.objects.get_or_create(user=user)
-    # Log in the user immediately after registration (create session)
     login(request, user)
     return JsonResponse(
         {
             'token':    token.key,
             'id':       user.id,
             'username': user.username,
-            'timezone': user.profile.timezone,
+            'timezone': profile.timezone,
         },
         status=201,
     )
 
 @csrf_exempt
 def login_view(request):
-    # Only accept POST requests (login credentials)
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
 
-    # Extract username and password from request body
     data = json.loads(request.body)
     username = data.get('username')
     password = data.get('password')
 
-    # Authenticate user (checks username & password against database)
     user = authenticate(request, username=username, password=password)
-    # If invalid credentials, authentication returns None
     if user is None:
         return JsonResponse({'error': 'Invalid credentials'}, status=401)
 
-    # Get or create an authentication token for this user (REST API requires token-based auth)
     token, _ = Token.objects.get_or_create(user=user)
-    # lazy-create in case a user was made without the signal firing
     profile, _ = UserProfile.objects.get_or_create(user=user, defaults={'timezone': 'UTC'})
-    # Create a session for the user (traditional session-based auth)
     login(request, user)
     return JsonResponse({
         'token':    token.key,
@@ -252,7 +225,6 @@ def login_view(request):
 @permission_classes([IsAuthenticated])
 def current_user(request):
     user = request.user
-    # same lazy-create as login_view
     profile, _ = UserProfile.objects.get_or_create(user=user, defaults={'timezone': 'UTC'})
 
     if request.method == 'PATCH':
@@ -279,3 +251,36 @@ def current_user(request):
         'timezone': profile.timezone,
     })
 
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def change_password(request):
+    current_password = request.data.get('current_password', '')
+    new_password     = request.data.get('new_password', '')
+
+    if not current_password or not new_password:
+        return Response(
+            {'error': 'Both current_password and new_password are required'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    if len(new_password) < 6:
+        return Response(
+            {'error': 'New password must be at least 6 characters'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    user = authenticate(request, username=request.user.username, password=current_password)
+    if user is None:
+        return Response(
+            {'error': 'Current password is incorrect'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    user.set_password(new_password)
+    user.save()
+
+    Token.objects.filter(user=user).delete()
+    new_token = Token.objects.create(user=user)
+
+    return Response({'token': new_token.key, 'message': 'Password changed successfully'})
