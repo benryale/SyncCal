@@ -55,12 +55,37 @@ Frontend runs at http://localhost:3000
 Backend runs at http://localhost:8000
 
 ## Features
-- **Real-time push updates** — calendar events, friend requests, and invites sync instantly across all tabs via WebSocket
-- **Event color coding** — pick a color for each event using a swatch picker or custom color picker
-- **Conflict detection** — live warning when a new event overlaps an existing one
-- **Autocomplete event search** — search bar with dropdown that navigates to the matching event
-- **Friend calendar overlay** — view friends' busy blocks alongside your own calendar
-- **Event invites** — invite friends to events with real-time accept/decline notifications
-- **Profile page** — update timezone and change password
-- **Onboarding tour** — 4-step tutorial shown on first signup
-- **Keyboard shortcuts** — N (new event), M/W/D (view switch), ? (shortcuts help)
+
+### Scheduling & Calendar
+- **Interactive calendar** — month, week, and day views powered by FullCalendar
+- **Create, edit, and delete events** — click any date to create; drag to move, resize to adjust duration
+- **Event color coding** — pick a color per event using swatches or a custom color picker
+- **Conflict detection** — live amber warning when a new event overlaps an existing one
+- **Timezone support** — events stored and displayed in your local timezone
+
+### Real-time Collaboration
+- **WebSocket push updates** — calendar events, friend requests, and invites sync instantly across all tabs with no page refresh
+- **Friend calendar overlay** — toggle friends' busy blocks on your calendar to find mutual free time
+- **Live connection indicator** — green WiFi icon shows when real-time sync is active
+
+### Friends & Invites
+- **Friend search** — search for users by username and send friend requests
+- **Friend requests** — send, accept, and decline friend requests with instant push notifications
+- **Event invites** — invite friends to events; they receive a real-time bell notification
+- **Invite conflict badge** — incoming invites show a red "Time Conflict" badge if they overlap your calendar
+- **Invite response notifications** — organizer gets a toast when someone accepts or declines
+
+### Search
+- **Autocomplete event search** — type to search your events; clicking a result navigates the calendar to that event's week
+
+### Account & Profile
+- **Registration** — username, email, password with confirmation field, show/hide toggle, and live match indicator
+- **Onboarding tour** — 4-step tutorial shown automatically on first signup
+- **Profile page** — view username and email, change timezone, change password
+- **Theme toggle** — switch between light and dark mode
+
+### Navigation & UX
+- **Navbar dropdown** — avatar menu with Profile and Sign out options
+- **Keyboard shortcuts** — N (new event), M/W/D (view switch), ? (shortcuts help), Esc (close)
+- **Event hover tooltip** — hover over any event to see details without clicking
+- **Landing page** — animated hero with flip words, 3D card preview, and spotlight effect
