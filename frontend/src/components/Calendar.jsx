@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
@@ -13,17 +13,10 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { fromZonedTime, toZonedTime, format as formatInTz } from 'date-fns-tz';
 import FriendShareSelector from '@/components/FriendShareSelector';
 import { useWebSocket } from '@/context/WebSocketContext';
-
-const COMMON_ZONES = [
-  'UTC','America/New_York','America/Chicago','America/Denver',
-  'America/Los_Angeles','America/Anchorage','Pacific/Honolulu',
-  'Europe/London','Europe/Paris','Europe/Berlin',
-  'Asia/Tokyo','Asia/Shanghai','Asia/Kolkata','Australia/Sydney',
-];
+import EventSearchFilter from '@/components/EventSearchFilter';
 
 const FRIEND_COLORS = [
   { bg: '#f97316', border: '#ea580c' },
@@ -71,37 +64,24 @@ const eventOverlapsDate = (ev, date) => {
 };
 
 const toFcEvent = (ev) => ({
-  id: ev.id,
-  title: ev.title,
-  start: ev.start_date,
-  end: ev.end_date,
+  id: ev.id, title: ev.title, start: ev.start_date, end: ev.end_date,
   extendedProps: {
-    organizer: ev.organizer,
-    timezone: ev.timezone,
-    location: ev.location,
-    description: ev.description,
-    priority: ev.priority,
-    shared_with: ev.shared_with,
+    organizer: ev.organizer, timezone: ev.timezone,
+    location: ev.location, description: ev.description,
+    priority: ev.priority, shared_with: ev.shared_with,
   },
 });
 
 const toFriendFcEvent = (ev) => {
   const c = getFriendColor(ev.organizer);
   return {
-    id: `friend-${ev.id}`,
-    title: ev.organizer,
-    start: ev.start_date,
-    end: ev.end_date,
-    backgroundColor: c.bg,
-    borderColor: c.border,
+    id: `friend-${ev.id}`, title: ev.organizer,
+    start: ev.start_date, end: ev.end_date,
+    backgroundColor: c.bg, borderColor: c.border,
     extendedProps: {
-      isFriendEvent: true,
-      organizer: ev.organizer,
-      timezone: ev.timezone,
-      location: ev.location,
-      description: ev.description,
-      priority: ev.priority,
-      shared_with: ev.shared_with,
+      isFriendEvent: true, organizer: ev.organizer, timezone: ev.timezone,
+      location: ev.location, description: ev.description,
+      priority: ev.priority, shared_with: ev.shared_with,
     },
   };
 };
@@ -142,7 +122,7 @@ const TOUR_STEPS = [
   {
     icon: <AlertTriangle className="size-8 text-amber-500" />,
     title: 'Conflict detection',
-    body: 'When creating events, an amber warning appears if the time overlaps an existing event.',
+    body: 'When creating events, an amber warning appears if the time overlaps an existing event on your calendar.',
   },
   {
     icon: <Keyboard className="size-8 text-orange-500" />,
@@ -214,14 +194,15 @@ function ShortcutsModal({ onClose }) {
 
 const Calendar = ({ visibleFriends = [], user }) => {
   const userTz = user?.timezone || 'UTC';
-  const [events, setEvents] = useState([]);
-  const [showModal, setShowModal] = useState(false);
-  const [isSubmitting, setSubmitting] = useState(false);
-  const [formData, setFormData] = useState(() => makeInitialForm(userTz));
-  const [selectedId, setSelectedId] = useState(null);
-  const [invites, setInvites] = useState([]);
-  const [showBell, setShowBell] = useState(false);
-  const [hoveredTip, setHoveredTip] = useState(null);
+  const [events, setEvents]               = useState([]);
+  const [filteredEvents, setFilteredEvents] = useState(null);
+  const [showModal, setShowModal]         = useState(false);
+  const [isSubmitting, setSubmitting]     = useState(false);
+  const [formData, setFormData]           = useState(() => makeInitialForm(userTz));
+  const [selectedId, setSelectedId]       = useState(null);
+  const [invites, setInvites]             = useState([]);
+  const [showBell, setShowBell]           = useState(false);
+  const [hoveredTip, setHoveredTip]       = useState(null);
   const [formConflicts, setFormConflicts] = useState([]);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -244,26 +225,16 @@ const Calendar = ({ visibleFriends = [], user }) => {
       if (['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName)) return;
       if (e.metaKey || e.ctrlKey) return;
       switch (e.key) {
-        case 'n': case 'N':
-          if (!showModal) openNewEventModal();
-          break;
+        case 'n': case 'N': if (!showModal) openNewEventModal(); break;
         case 'Escape':
           if (showModal) closeModal();
           if (showBell) setShowBell(false);
           if (showShortcuts) setShowShortcuts(false);
           break;
-        case '?':
-          setShowShortcuts(v => !v);
-          break;
-        case 'm': case 'M':
-          calRef.current?.getApi().changeView('dayGridMonth');
-          break;
-        case 'w': case 'W':
-          calRef.current?.getApi().changeView('timeGridWeek');
-          break;
-        case 'd': case 'D':
-          calRef.current?.getApi().changeView('timeGridDay');
-          break;
+        case '?': setShowShortcuts(v => !v); break;
+        case 'm': case 'M': calRef.current?.getApi().changeView('dayGridMonth'); break;
+        case 'w': case 'W': calRef.current?.getApi().changeView('timeGridWeek'); break;
+        case 'd': case 'D': calRef.current?.getApi().changeView('timeGridDay'); break;
       }
     };
     window.addEventListener('keydown', handler);
@@ -401,13 +372,11 @@ const Calendar = ({ visibleFriends = [], user }) => {
     try {
       const tz = formData.timezone || userTz;
       const payload = {
-        title: formData.title,
-        description: formData.description,
+        title: formData.title, description: formData.description,
         location: formData.location,
         start_date: fromZonedTime(formData.start_date, tz).toISOString(),
         end_date:   fromZonedTime(formData.end_date,   tz).toISOString(),
-        timezone: tz,
-        priority: formData.priority,
+        timezone: tz, priority: formData.priority,
       };
       let eventId = selectedId;
       if (selectedId) {
@@ -505,97 +474,106 @@ const Calendar = ({ visibleFriends = [], user }) => {
     return events.some(ev => eventOverlapsDate(ev, arg.date)) ? [] : ['sync-empty-day'];
   };
 
-  const zonesForPicker = (() => {
-    const seen = new Set([userTz, formData.timezone].filter(Boolean));
-    COMMON_ZONES.forEach(z => seen.add(z));
-    return [...seen];
-  })();
+  const calendarEvents = filteredEvents !== null ? filteredEvents : events;
 
   return (
-    <div className="relative">
+    <div>
       {showOnboarding && <OnboardingModal onDone={finishOnboarding} />}
       {showShortcuts && <ShortcutsModal onClose={() => setShowShortcuts(false)} />}
       <EventHoverTooltip tooltip={hoveredTip} />
 
-      <div className="absolute right-0 top-0 z-20 flex h-[38px] items-center gap-2">
-        <button
-          title={connected ? 'Live — click for shortcuts' : 'Reconnecting…'}
-          onClick={() => setShowShortcuts(true)}
-          className="flex items-center gap-1 rounded px-1 hover:bg-muted"
-        >
-          {connected
-            ? <Wifi className="size-4 text-green-500" />
-            : <WifiOff className="size-4 text-muted-foreground animate-pulse" />}
-        </button>
-        <ThemeToggle />
-        <div className="relative">
-          <Button variant="outline" size="icon" className="relative rounded-full"
-            onClick={() => setShowBell(v => !v)}>
-            <Bell className="size-5 text-muted-foreground" />
-            {invites.length > 0 && (
-              <span className="absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
-                {invites.length}
-              </span>
-            )}
-          </Button>
-          {showBell && (
-            <div className="absolute right-0 top-12 z-50 w-80 rounded-md border bg-popover p-2 shadow-lg">
-              <h3 className="mb-2 px-2 text-sm font-semibold text-foreground">Pending Invites</h3>
-              {invites.length === 0 ? (
-                <div className="px-2 py-3 text-center text-sm text-muted-foreground">
-                  <TextGenerateEffect words="No new invites" />
-                </div>
-              ) : (
-                <div className="flex flex-col gap-2 max-h-[60vh] overflow-y-auto">
-                  {invites.map(inv => (
-                    <div key={inv.id} className="flex flex-col rounded-lg border bg-muted/20 p-3 text-sm shadow-sm hover:bg-muted/40">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1 pr-2">
-                          <p className="font-semibold text-foreground truncate">{inv.event_title}</p>
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            From: <span className="font-medium text-blue-600 dark:text-blue-400">@{inv.organizer_username}</span>
-                          </p>
-                        </div>
-                        <div className="flex gap-1 shrink-0">
-                          <Button size="icon" variant="ghost"
-                            className="h-7 w-7 text-green-600 hover:bg-green-100 dark:text-green-400 dark:hover:bg-green-900/50"
-                            onClick={() => handleInviteResponse(inv.id, 'accepted')}>
-                            <Check className="size-4" />
-                          </Button>
-                          <Button size="icon" variant="ghost"
-                            className="h-7 w-7 text-red-600 hover:bg-red-100 dark:text-red-400 dark:hover:bg-red-900/50"
-                            onClick={() => handleInviteResponse(inv.id, 'declined')}>
-                            <X className="size-4" />
-                          </Button>
-                        </div>
-                      </div>
-                      <div className="mt-2 space-y-1">
-                        <p className="flex items-center text-xs text-muted-foreground">
-                          <Clock3 className="mr-1.5 size-3.5" />
-                          {formatInviteTime(inv.event_start)}
-                        </p>
-                        {hasInviteConflict(inv.event_start, inv.event_end) && (
-                          <p className="inline-flex items-center gap-1 rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-medium text-red-800 dark:bg-red-900/30 dark:text-red-200 w-fit">
-                            <AlertTriangle className="size-3" /> Time Conflict
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+      {/* ── Top bar: search left, icons right — no overlap ── */}
+      <div className="mb-3 flex items-center justify-between gap-4">
+        {/* Search/filter takes up left side */}
+        <div className="flex-1">
+          <EventSearchFilter events={events} onFilter={setFilteredEvents} />
+        </div>
+
+        {/* Icons pinned to right */}
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            title={connected ? 'Live — click for shortcuts' : 'Reconnecting…'}
+            onClick={() => setShowShortcuts(true)}
+            className="flex items-center gap-1 rounded px-1 hover:bg-muted"
+          >
+            {connected
+              ? <Wifi className="size-4 text-green-500" />
+              : <WifiOff className="size-4 text-muted-foreground animate-pulse" />}
+          </button>
+
+          <ThemeToggle />
+
+          {/* Bell */}
+          <div className="relative">
+            <Button variant="outline" size="icon" className="relative rounded-full"
+              onClick={() => setShowBell(v => !v)}>
+              <Bell className="size-5 text-muted-foreground" />
+              {invites.length > 0 && (
+                <span className="absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+                  {invites.length}
+                </span>
               )}
-            </div>
-          )}
+            </Button>
+            {showBell && (
+              <div className="absolute right-0 top-12 z-50 w-80 rounded-md border bg-popover p-2 shadow-lg">
+                <h3 className="mb-2 px-2 text-sm font-semibold text-foreground">Pending Invites</h3>
+                {invites.length === 0 ? (
+                  <div className="px-2 py-3 text-center text-sm text-muted-foreground">
+                    <TextGenerateEffect words="No new invites" />
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-2 max-h-[60vh] overflow-y-auto">
+                    {invites.map(inv => (
+                      <div key={inv.id} className="flex flex-col rounded-lg border bg-muted/20 p-3 text-sm shadow-sm hover:bg-muted/40">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1 pr-2">
+                            <p className="font-semibold text-foreground truncate">{inv.event_title}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              From: <span className="font-medium text-blue-600 dark:text-blue-400">@{inv.organizer_username}</span>
+                            </p>
+                          </div>
+                          <div className="flex gap-1 shrink-0">
+                            <Button size="icon" variant="ghost"
+                              className="h-7 w-7 text-green-600 hover:bg-green-100 dark:text-green-400 dark:hover:bg-green-900/50"
+                              onClick={() => handleInviteResponse(inv.id, 'accepted')}>
+                              <Check className="size-4" />
+                            </Button>
+                            <Button size="icon" variant="ghost"
+                              className="h-7 w-7 text-red-600 hover:bg-red-100 dark:text-red-400 dark:hover:bg-red-900/50"
+                              onClick={() => handleInviteResponse(inv.id, 'declined')}>
+                              <X className="size-4" />
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="mt-2 space-y-1">
+                          <p className="flex items-center text-xs text-muted-foreground">
+                            <Clock3 className="mr-1.5 size-3.5" />
+                            {formatInviteTime(inv.event_start)}
+                          </p>
+                          {hasInviteConflict(inv.event_start, inv.event_end) && (
+                            <p className="inline-flex items-center gap-1 rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-medium text-red-800 dark:bg-red-900/30 dark:text-red-200 w-fit">
+                              <AlertTriangle className="size-3" /> Time Conflict
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
+      {/* FullCalendar */}
       <FullCalendar
         ref={calRef}
         timeZone={userTz}
         plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
         initialView="dayGridMonth"
         headerToolbar={{ left: 'title', center: 'dayGridMonth,timeGridWeek,timeGridDay', right: 'prev,next today' }}
-        events={events}
+        events={calendarEvents}
         dateClick={handleDateClick}
         dayCellClassNames={getDayCellClass}
         eventClick={handleEventClick}
@@ -608,6 +586,7 @@ const Calendar = ({ visibleFriends = [], user }) => {
         eventDisplay="block"
       />
 
+      {/* Event modal */}
       <Dialog open={showModal} onOpenChange={(open) => { if (!open) closeModal(); }}>
         <DialogContent className="p-0 sm:max-w-md overflow-visible">
           <DialogHeader className="px-6 pt-5 pb-1 text-center">
@@ -618,10 +597,8 @@ const Calendar = ({ visibleFriends = [], user }) => {
               Block out some time on your calendar.
             </DialogDescription>
           </DialogHeader>
-
           <form onSubmit={handleSubmit} className="grid">
             <div className="grid gap-4 px-6 pb-5">
-
               <div className="grid gap-1.5">
                 <Label htmlFor="title" className="text-sm font-medium">Event title</Label>
                 <Input id="title" name="title" value={formData.title}
@@ -629,7 +606,6 @@ const Calendar = ({ visibleFriends = [], user }) => {
                   placeholder="Study group, office hours, dinner plans"
                   className="h-10 bg-muted/50" required />
               </div>
-
               <div className="grid gap-3 rounded-lg border bg-muted/30 p-4 sm:grid-cols-2">
                 <div className="grid gap-1.5">
                   <Label htmlFor="start_date" className="flex items-center gap-1.5 text-sm font-medium">
@@ -646,7 +622,6 @@ const Calendar = ({ visibleFriends = [], user }) => {
                     value={formData.end_date} onChange={handleInputChange} className="h-10" required />
                 </div>
               </div>
-
               {formConflicts.length > 0 && !hasInvalidRange && (
                 <div className="flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2.5 text-sm text-amber-800 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-300">
                   <AlertTriangle className="mt-0.5 size-4 shrink-0" />
@@ -656,19 +631,16 @@ const Calendar = ({ visibleFriends = [], user }) => {
                   </div>
                 </div>
               )}
-
               <div className="grid gap-1.5">
                 <Label htmlFor="location" className="text-sm font-medium">Location</Label>
                 <Input id="location" name="location" value={formData.location}
                   onChange={handleInputChange} placeholder="Zoom, library, dining hall" className="h-10" />
               </div>
-
               <div className="grid gap-1.5">
                 <Label htmlFor="description" className="text-sm font-medium">Description</Label>
                 <Input id="description" name="description" value={formData.description}
                   onChange={handleInputChange} placeholder="Any extra details" className="h-10" />
               </div>
-
               <div className="grid gap-1.5">
                 <Label className="text-sm font-medium">Share with Friends</Label>
                 <FriendShareSelector value={formData.shared_with} onChange={handleInputChange} />
@@ -676,18 +648,14 @@ const Calendar = ({ visibleFriends = [], user }) => {
                   Invited friends will receive a notification instantly.
                 </p>
               </div>
-
               {hasInvalidRange && (
                 <p className="text-sm text-red-500">End time must be after the start time.</p>
               )}
             </div>
-
             <div className="flex items-center justify-between border-t bg-muted/20 px-6 py-3">
               <div>
                 {selectedId && (
-                  <Button type="button" variant="destructive" onClick={handleDelete} disabled={isSubmitting}>
-                    Delete
-                  </Button>
+                  <Button type="button" variant="destructive" onClick={handleDelete} disabled={isSubmitting}>Delete</Button>
                 )}
               </div>
               <div className="flex items-center gap-2">
