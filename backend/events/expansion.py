@@ -4,7 +4,8 @@ from typing import Iterator
 from .models import EventSeries
 from .zone_utils import add_duration_wallclock, expand_rrule
 
-
+"""this file contains the logic to expand an event series into concrete occurrences, 
+applying overrides as necessary. This is used for both api and calendar generation."""
 def resolve_occurrences(
     series: EventSeries,
     window_start: datetime,
