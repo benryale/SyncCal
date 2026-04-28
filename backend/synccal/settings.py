@@ -23,6 +23,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'channels',
     'api',
+    'django_extensions',
 ]
 
 MIDDLEWARE = [
