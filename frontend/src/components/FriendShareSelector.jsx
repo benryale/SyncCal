@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { Search, X, Users } from 'lucide-react';
 
-export function FriendShareSelector({ value, onChange }) {
+export default function FriendShareSelector({ value, onChange }) {
   const [query, setQuery] = useState('');
   const [friends, setFriends] = useState([]);
   const [open, setOpen] = useState(false);
