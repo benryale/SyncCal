@@ -2,11 +2,13 @@ import path from 'path'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from "@tailwindcss/vite"
+import basicSsl from '@vitejs/plugin-basic-ssl'
 
 export default defineConfig({
   plugins: [
     react(),
-    tailwindcss()
+    tailwindcss(),
+    basicSsl()
   ],
   resolve: {
     alias: {
@@ -17,7 +19,8 @@ export default defineConfig({
     port: 3000,
     proxy: {
       '/api': {
-        target: 'http://127.0.0.1:8000',
+        target: 'https://127.0.0.1:8000',
+        secure:false, // tells vite to trust djangos self signed cert
         changeOrigin: true,
       },
       '/ws': {
