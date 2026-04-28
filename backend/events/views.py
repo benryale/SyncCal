@@ -125,20 +125,19 @@ def send_event_invite(request):
     if not event_id or not username:
         return Response({'error': 'event_id and username are required'}, status=status.HTTP_400_BAD_REQUEST)
 
-    # 1. Get the user's ID from their username
+    #retieve the user being invited and check that they exist. 
     try:
         invited_user = User.objects.get(username=username)
         user_id = invited_user.id
     except User.DoesNotExist:
         return Response({'error':f'User "{username}" is not found'}, status=status.HTTP_404_NOT_FOUND)
-
-    # 2. Get the event (You accidentally deleted this block!)
+    #get the event and check logged in user is the organizer
     try:
         event = EventSeries.objects.get(id=event_id, organizer=request.user)
     except EventSeries.DoesNotExist:
         return Response({'error': 'Event not found or you are not the organizer'}, status=status.HTTP_404_NOT_FOUND)
 
-    # 3. Check that the person being invited is actually a friend
+    #Check that the person being invited is actually a friend
     is_friend = FriendRequest.objects.filter(
         (Q(from_user=request.user, to_user_id=user_id) | Q(from_user_id=user_id, to_user=request.user)),
         status='accepted'
@@ -147,7 +146,7 @@ def send_event_invite(request):
     if not is_friend:
         return Response({'error': 'You can only invite your friends to events'}, status=status.HTTP_403_FORBIDDEN)
 
-    # 4. Create the invite
+    # Create the invite
     invite, created = EventInvite.objects.get_or_create(
         event=event,
         user_id=user_id,
@@ -193,6 +192,7 @@ def list_event_invites(request):
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated])
 def cancel_occurrence(request, series_id, recurrence_id):
+    """this function allows the organizer of an event to cancel a single occurence of a recurring event series. """
     series = get_object_or_404(EventSeries, id=series_id)
     if series.organizer != request.user:
         return Response({'error': 'Only the organizer can modify occurrences'}, status=status.HTTP_403_FORBIDDEN)
@@ -221,6 +221,7 @@ def cancel_occurrence(request, series_id, recurrence_id):
 @api_view(['PATCH'])
 @permission_classes([permissions.IsAuthenticated])
 def edit_occurrence(request, series_id, recurrence_id):
+    """this function allows organizer of an event to edit a single occurence of a recurring event series. """
     series = get_object_or_404(EventSeries, id=series_id)
     if series.organizer != request.user:
         return Response({'error': 'Only the organizer can modify occurrences'}, status=status.HTTP_403_FORBIDDEN)
