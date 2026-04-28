@@ -7,7 +7,7 @@ from events.zone_utils import validate_iana_timezone
 
 # one row per User; auto-created via post_save signal
 class UserProfile(models.Model):
-    user       = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='user_profile')
     timezone   = models.CharField(max_length=64, default='UTC')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -70,6 +70,5 @@ class Event(models.Model):
 #create another database that extend the default User from Django 
 class Profile(models.Model):
     #Create an OnetoOne relationship to User (default to auth User)
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
-    #image store to avatars/
+    user = models.OneToOneField( User, on_delete=models.CASCADE, related_name='profile' )    #image store to avatars/
     avatar = models.ImageField(upload_to='avatars/', null=True, blank=True)
