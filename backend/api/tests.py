@@ -15,15 +15,19 @@ from .models import UserProfile
 # so the regular `from . import ...` form doesn't work.
 _BACKFILL_MIGRATION = import_module('api.migrations.0004_backfill_userprofiles')
 
-
+"""this file contains tests for the api app that require the db. 
+these tests include signals, data migrations, and any other code more easily tested with db 
+than with pure unit tests. """
 class UserProfileSignalTests(TestCase):
 
     def test_create_user_creates_profile_with_default_utc(self):
+        # creating a user should auto-create a UserProfile with timezone=UTC
         u = User.objects.create_user(username='alice', password='pw')
         self.assertTrue(hasattr(u, 'profile'))
         self.assertEqual(u.profile.timezone, 'UTC')
 
     def test_save_on_existing_user_does_not_duplicate_profile(self):
+        # saving an existing user should not create a new profile or change the existing one
         u = User.objects.create_user(username='bob', password='pw')
         original_pk = u.profile.pk
         u.email = 'bob@x.com'
@@ -34,8 +38,9 @@ class UserProfileSignalTests(TestCase):
 
 
 class BackfillUserProfileMigrationTests(TestCase):
-
+    """this class tests the data migration that backfills userprofiles for existing users at the time of our initial userprofile implementation. """
     class _FakeApps:
+        # we only need the User and UserProfile models for this test, so we can keep it simple
         def get_model(self, *args):
             if len(args) == 1 and args[0] == 'auth.User':
                 return User

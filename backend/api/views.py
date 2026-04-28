@@ -23,6 +23,8 @@ def health(request):
 
 @csrf_exempt
 def search_users(request):
+    """this function is used by frontend to search for users when sending friend requests
+    it returns a list of users matching query, along with friend request status if the requester is authenticated"""
     if request.method != 'GET':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
     
@@ -63,6 +65,8 @@ def search_users(request):
 
 @csrf_exempt
 def send_friend_request(request):
+    """this function is used by frontend to send a friend request from logged in user 
+    to another user specified by to_user_id in the request body. Returns the status of the friend request after creation."""
     if not request.user.is_authenticated:
         return JsonResponse({'error': 'Authentication required'}, status=401)
     if request.method != 'POST':
@@ -93,6 +97,8 @@ def send_friend_request(request):
 
 @csrf_exempt
 def respond_to_friend_request(request, request_id):
+    """function for accepting or decling a friend request. 
+    body should contain 'action' field with the value accept or decline. Only the recipient of the friend request can respond to it."""
     if not request.user.is_authenticated:
         return JsonResponse({'error': 'Authentication required'}, status=401)
     if request.method != 'POST':
@@ -119,6 +125,7 @@ def respond_to_friend_request(request, request_id):
 
 
 def list_friend_requests(request):
+    """this function returns a list of pending friend requests for logged in user. Each request includes the id, username and id of the sender, and the timestamp when the request was created."""
     if not request.user.is_authenticated:
         return JsonResponse({'error': 'Authentication required'}, status=401)
     if request.method != 'GET':
@@ -136,6 +143,7 @@ def list_friend_requests(request):
     ]
     return JsonResponse(data, safe=False)
 
+#we decorate this view with api view and permission classes so that we can use the request.user object and return a drf response instead of json response for frontedn
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def list_friends(request):
@@ -156,6 +164,8 @@ def list_friends(request):
 
 @csrf_exempt
 def register(request):
+    """this function is used by frontend to register a new user. 
+    expects a post request with a body containign the username, email, password and optional timezone hint. It creates a new user and profile, and returns the auth token and user info."""
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
 
@@ -199,6 +209,8 @@ def register(request):
 
 @csrf_exempt
 def login_view(request):
+    """this function is used by frontend to log in an existing user.
+    expects a post request with a body containing the username and password. It authenticates the user, creates a new auth token, and returns the token and user info."""
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
 
@@ -224,6 +236,9 @@ def login_view(request):
 @api_view(['GET', 'PATCH'])
 @permission_classes([IsAuthenticated])
 def current_user(request):
+    """this function is used by frontend to get or update the current logged in user's info.
+    GET request returns the user's id, username, email and timezone.
+    PATCH request can update the user's timezone by providing a valid IANA timezone string in the request body. Returns the updated user info after saving."""
     user = request.user
     profile, _ = UserProfile.objects.get_or_create(user=user, defaults={'timezone': 'UTC'})
 
@@ -255,6 +270,9 @@ def current_user(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def change_password(request):
+    """this function is used by frontend to change the current logged in user's password.
+    expects a post request with a body containing the current_password and new_password. It verifies the current password, updates to new, deletes all existing auth tokens for the user, 
+    creates a new token, and returns the new token and a success message."""
     current_password = request.data.get('current_password', '')
     new_password     = request.data.get('new_password', '')
 
