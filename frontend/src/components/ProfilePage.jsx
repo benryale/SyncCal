@@ -1,14 +1,3 @@
-/**
- * ProfilePage.jsx
- * ---------------
- * Lets the logged-in user view and update their profile:
- *   - Display username and email (read-only)
- *   - Change their timezone (PATCH /api/users/me/)
- *   - Change their password (POST /api/auth/change-password/)
- *
- * The timezone change calls the existing backend endpoint.
- * Password change requires a new backend endpoint (see backend/api/views.py addition below).
- */
 import { useState, useEffect } from 'react'
 import { User, Lock, Globe, CheckCircle, LoaderCircle, Eye, EyeOff } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -36,16 +25,13 @@ const COMMON_ZONES = [
 ]
 
 function ProfilePage({ user, onUserUpdate }) {
-  // ── profile info ──────────────────────────────────────────────────── //
   const [profileData, setProfileData] = useState(null)
   const [loadingProfile, setLoadingProfile] = useState(true)
 
-  // ── timezone section ─────────────────────────────────────────────── //
   const [timezone, setTimezone]       = useState(user?.timezone || 'UTC')
   const [savingTz, setSavingTz]       = useState(false)
   const [tzSuccess, setTzSuccess]     = useState(false)
 
-  // ── password section ─────────────────────────────────────────────── //
   const [currentPw, setCurrentPw]     = useState('')
   const [newPw, setNewPw]             = useState('')
   const [confirmPw, setConfirmPw]     = useState('')
@@ -72,7 +58,6 @@ function ProfilePage({ user, onUserUpdate }) {
     fetchProfile()
   }, [])
 
-  // ── handlers ─────────────────────────────────────────────────────── //
   const handleSaveTimezone = async () => {
     setSavingTz(true)
     setTzSuccess(false)
@@ -130,7 +115,6 @@ function ProfilePage({ user, onUserUpdate }) {
     }
   }
 
-  // ── render ────────────────────────────────────────────────────────── //
   if (loadingProfile) {
     return (
       <div className="flex items-center justify-center py-20">

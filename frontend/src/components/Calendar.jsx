@@ -122,7 +122,7 @@ const detectConflicts = (start, end, events, editId = null) => {
   });
 };
 
-// onboarding key is per-user, built dynamically from user.id
+// store onboarding state per user so the tour only shows once per account
 
 const TOUR_STEPS = [
   {
@@ -271,7 +271,7 @@ const Calendar = ({ visibleFriends = [], user }) => {
         } else if (action === 'updated') {
           if (ev.organizer_id === user?.id) {
             setEvents(prev => prev.map(e => String(e.id) === String(ev.id) ? toFcEvent(ev) : e));
-            toast.info('📅 Shared event updated', { description: `"${ev.title}" was modified`, duration: 3000 });
+            toast.info('Event updated', { description: `"${ev.title}" was modified`, duration: 3000 });
           } else if (visibleFriends.includes(ev.organizer_id)) {
             setEvents(prev => prev.map(e => e.id === `friend-${ev.id}` ? toFriendFcEvent(ev) : e));
           }
@@ -288,7 +288,7 @@ const Calendar = ({ visibleFriends = [], user }) => {
         if (msg.action === 'created') {
           setInvites(prev => {
             if (prev.some(i => i.id === msg.id)) return prev;
-            toast('🔔 New event invite', { description: `${msg.organizer_username} invited you to "${msg.event_title}"` });
+            toast('New invite', { description: `${msg.organizer_username} invited you to "${msg.event_title}"` });
             return [...prev, {
               id: msg.id, event_id: msg.event_id,
               event_title: msg.event_title, event_start: msg.event_start,
@@ -297,7 +297,6 @@ const Calendar = ({ visibleFriends = [], user }) => {
             }];
           });
         } else if (msg.action === 'accepted') {
-          // Someone accepted our invite — notify the organizer
           toast.success('Invite accepted', { description: `${msg.invitee_username || 'Someone'} accepted your invite to "${msg.event_title}"` });
         } else if (msg.action === 'declined') {
           toast('Invite declined', { description: `${msg.invitee_username || 'Someone'} declined your invite to "${msg.event_title}"` });
@@ -328,7 +327,9 @@ const Calendar = ({ visibleFriends = [], user }) => {
         try {
           const fr = await axios.get(`/api/events/?owner_id__in=${visibleFriends.join(',')}`);
           all = [...all, ...fr.data.map(toFriendFcEvent)];
-        } catch { /* non-critical */ }
+        } catch {
+          // friend events are optional, don't block
+        }
       }
       setEvents(all);
     } catch (err) { console.error('fetchEvents:', err); }
@@ -508,7 +509,7 @@ const Calendar = ({ visibleFriends = [], user }) => {
       {showShortcuts && <ShortcutsModal onClose={() => setShowShortcuts(false)} />}
       <EventHoverTooltip tooltip={hoveredTip} />
 
-      {/* Top bar: search left, icons right */}
+      
       <div className="mb-3 flex items-center gap-3">
         <EventSearchFilter events={events} calendarRef={calRef} />
 
@@ -617,7 +618,7 @@ const Calendar = ({ visibleFriends = [], user }) => {
           <form onSubmit={handleSubmit} className="grid">
             <div className="grid gap-4 px-6 pb-5">
 
-              {/* Title + color picker row */}
+              
               <div className="grid gap-1.5">
                 <Label htmlFor="title" className="text-sm font-medium">Event title</Label>
                 <div className="flex gap-2">
@@ -625,7 +626,7 @@ const Calendar = ({ visibleFriends = [], user }) => {
                     onChange={handleInputChange}
                     placeholder="Study group, office hours, dinner plans"
                     className="h-10 bg-muted/50 flex-1" required />
-                  {/* color picker */}
+                  
                   <div className="relative shrink-0">
                     <input
                       type="color"
@@ -641,7 +642,7 @@ const Calendar = ({ visibleFriends = [], user }) => {
                     />
                   </div>
                 </div>
-                {/* Color swatches */}
+                
                 <div className="flex gap-1.5 flex-wrap">
                   {EVENT_COLORS.map(c => (
                     <button
