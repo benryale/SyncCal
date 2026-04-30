@@ -17,7 +17,7 @@ function EventSearchFilter({ events, calendarRef }) {
     const matches = events
       .filter(ev => !ev.extendedProps?.isFriendEvent)
       .filter(ev => ev.title.toLowerCase().includes(q))
-      .slice(0, 8) // max 8 results
+      .slice(0, 8) // results shows max 8
 
     setResults(matches)
     setOpen(matches.length > 0)
@@ -35,11 +35,11 @@ function EventSearchFilter({ events, calendarRef }) {
   }, [])
 
   const handleSelect = (ev) => {
-    // navigate calendar to the event's date
+    // navigate calendar to the event's date to respond to search
     if (calendarRef?.current) {
       const api = calendarRef.current.getApi()
       api.gotoDate(new Date(ev.start))
-      // switch to week view so the event is clearly visible
+      // switch to week view so the event is clearly visible for searching events
       api.changeView('timeGridWeek')
     }
     setQuery('')
@@ -84,7 +84,7 @@ function EventSearchFilter({ events, calendarRef }) {
               onClick={() => handleSelect(ev)}
               className="flex w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-muted/60 transition-colors"
             >
-              {/* color dot */}
+              {/* color dots */}
               <span
                 className="size-3 shrink-0 rounded-full"
                 style={{ backgroundColor: ev.extendedProps?.color || ev.backgroundColor || '#3B82F6' }}
