@@ -22,7 +22,7 @@ function AuthPage({ onAuth, initialMode = 'login' }) {
     setRegistered(false)
   }, [initialMode])
 
-  // auto-switch to login 2.5 seconds after successful registration
+  // auto direct the user to login 2.5 seconds after successful registration
   useEffect(() => {
     if (!registered) return
     const t = setTimeout(() => {
@@ -104,7 +104,7 @@ function AuthPage({ onAuth, initialMode = 'login' }) {
     }
   }
 
-  // ── success banner ───────────────────────────────────────────────────── //
+  // ── account creation success banner───── //
   if (registered) {
     return (
       <div className="mx-auto mt-20 max-w-sm">
@@ -118,7 +118,7 @@ function AuthPage({ onAuth, initialMode = 'login' }) {
           <p className="mt-2 text-sm text-green-700 dark:text-green-400">
             Taking you to sign in…
           </p>
-          {/* progress bar */}
+          {/* progress bar shown for visual */}
           <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-green-200 dark:bg-green-800">
             <div
               className="h-full rounded-full bg-green-500"

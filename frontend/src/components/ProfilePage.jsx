@@ -64,7 +64,7 @@ function ProfilePage({ user, onUserUpdate }) {
     try {
       const res = await axios.patch('/api/users/me/', { timezone })
       setProfileData(prev => ({ ...prev, timezone: res.data.timezone }))
-      // update parent so NavBar/Calendar reflects new tz without refresh
+      // update so NavBar/Calendar reflects new tz without refresh
       if (onUserUpdate) onUserUpdate({ ...user, timezone: res.data.timezone })
       localStorage.setItem('timezone', res.data.timezone)
       setTzSuccess(true)
@@ -149,7 +149,7 @@ function ProfilePage({ user, onUserUpdate }) {
         </div>
       </section>
 
-      {/* ── Timezone ─────────────────────────────────────────────────── */}
+      {/* ── Timezone ─────────────────────── */}
       <section className="mb-6 rounded-lg border border-border bg-card p-6">
         <div className="mb-4 flex items-center gap-2">
           <Globe className="size-5 text-muted-foreground" />
@@ -190,7 +190,7 @@ function ProfilePage({ user, onUserUpdate }) {
         )}
       </section>
 
-      {/* ── Change Password ───────────────────────────────────────────── */}
+      {/* ── Change Password Feature ───────── */}
       <section className="rounded-lg border border-border bg-card p-6">
         <div className="mb-4 flex items-center gap-2">
           <Lock className="size-5 text-muted-foreground" />
