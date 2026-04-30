@@ -22,7 +22,6 @@ from django.dispatch import receiver
 from .models import EventSeries, EventInvite
 
 
-# ── helpers ──────────────────────────────────────────────────────────────── #
 
 def _push(group: str, msg_type: str, payload: dict):
     """Fire-and-forget; never crashes the calling request."""
@@ -70,9 +69,7 @@ def _friend_ids(user_id: int):
 
 def _broadcast_event(action: str, event_data: dict, organizer_id: int):
     payload = {'type': 'calendar_event', 'action': action, 'event': event_data}
-    # Push to organizer's own tabs
     _push(f"user_{organizer_id}", 'calendar.event.update', payload)
-    # Push to every accepted friend's listener group
     try:
         for fid in _friend_ids(organizer_id):
             _push(f"friend_{fid}", 'calendar.event.update', payload)
@@ -80,7 +77,6 @@ def _broadcast_event(action: str, event_data: dict, organizer_id: int):
         pass
 
 
-# ── EventSeries signals ───────────────────────────────────────────────────── #
 
 @receiver(post_save, sender=EventSeries)
 def on_event_series_saved(sender, instance: EventSeries, created: bool, **kwargs):
@@ -103,7 +99,6 @@ def on_event_series_deleted(sender, instance: EventSeries, **kwargs):
         pass
 
 
-# ── EventInvite signals ───────────────────────────────────────────────────── #
 
 @receiver(post_save, sender=EventInvite)
 def on_invite_saved(sender, instance: EventInvite, created: bool, **kwargs):
@@ -130,10 +125,7 @@ def on_invite_saved(sender, instance: EventInvite, created: bool, **kwargs):
     }
 
     if created:
-        # New invite → wake up the invitee
         _push(f"user_{instance.user_id}", 'invite.update', invite_payload)
     else:
-        # Status update → notify the organizer
         _push(f"user_{ev.organizer_id}", 'invite.update', invite_payload)
-        # And refresh invitee's view too
         _push(f"user_{instance.user_id}", 'invite.update', invite_payload)

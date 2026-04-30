@@ -180,7 +180,6 @@ def register(request):
 
     user = User.objects.create_user(username=username, email=email, password=password)
 
-    # Always create the profile explicitly — never rely on signals alone
     profile, _ = UserProfile.objects.get_or_create(user=user, defaults={'timezone': 'UTC'})
 
     if tz_hint:
