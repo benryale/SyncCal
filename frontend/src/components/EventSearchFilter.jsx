@@ -1,9 +1,3 @@
-/**
- * EventSearchFilter.jsx
- * ---------------------
- * Autocomplete dropdown search — as you type, shows matching events.
- * Clicking a result navigates the FullCalendar to that event's date.
- */
 import { useState, useEffect, useRef } from 'react'
 import { Search, X, Calendar } from 'lucide-react'
 import { format } from 'date-fns'

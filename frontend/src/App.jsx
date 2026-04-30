@@ -49,9 +49,8 @@ function App() {
     localStorage.setItem('timezone', tz)
 
     if (isNewAccount) {
-      // Clear the per-user onboarding flag so new users always see the tour
       localStorage.removeItem(`synccal_onboarded_${data.id}`)
-      toast.success(`Welcome to SyncCal, ${data.username}! 🎉`)
+      toast.success(`Welcome to SyncCal, ${data.username}!`)
     }
 
     setPage('calendar')
