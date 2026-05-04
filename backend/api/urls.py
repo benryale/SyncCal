@@ -10,6 +10,7 @@ urlpatterns = [
     path('health/', api_views.health),
     path('auth/register/', api_views.register),
     path('auth/login/', api_views.login_view),
+    path('auth/change-password/', api_views.change_password),
     # must come before router or 'me' gets captured as pk
     path('users/me/', api_views.current_user),
     path('users/search/', api_views.search_users),
