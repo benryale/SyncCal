@@ -88,9 +88,20 @@ class EventSeriesViewSet(viewsets.ModelViewSet):
         owner_ids = self.request.query_params.get('owner_id__in')
         if owner_ids:
             #convert string of ids into list of ints
-            owner_ids = [int(id) for id in owner_ids.split(',') if id.isdigit()]
-            #return the events where organizer is in the list of owner_ids
-            return EventSeries.objects.filter(organizer_id__in = owner_ids)
+            requested_ids = [int(id) for id in owner_ids.split(',') if id.isdigit()]
+            # only let users see events for people they're friends with.
+            # before this check, anyone with a valid token could pull any user's events by guessing ids.
+            friend_links = FriendRequest.objects.filter(
+                Q(from_user=user, to_user_id__in=requested_ids) |
+                Q(to_user=user, from_user_id__in=requested_ids),
+                status='accepted',
+            )
+            allowed_ids = set()
+            for fr in friend_links:
+                # the friend is whichever side isn't the requester
+                allowed_ids.add(fr.to_user_id if fr.from_user_id == user.id else fr.from_user_id)
+            #return the events where organizer is in the friend-validated list
+            return EventSeries.objects.filter(organizer_id__in=allowed_ids)
         #if no friend is selected, just return events of the logged in user
         accepted_event_ids = EventInvite.objects.filter(
             user = user,
