@@ -19,12 +19,11 @@ export default defineConfig({
     port: 3000,
     proxy: {
       '/api': {
-        target: 'https://127.0.0.1:8000',
-        secure:false, // tells vite to trust djangos self signed cert
+        target: 'http://backend:8000',
         changeOrigin: true,
       },
       '/ws': {
-        target: 'ws://127.0.0.1:8000',
+        target: 'ws://backend:8000',
         ws: true,
         changeOrigin: true,
       },
