@@ -2,11 +2,13 @@ import path from 'path'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from "@tailwindcss/vite"
+import basicSsl from '@vitejs/plugin-basic-ssl'
 
 export default defineConfig({
   plugins: [
     react(),
-    tailwindcss()
+    tailwindcss(),
+    basicSsl()
   ],
   resolve: {
     alias: {
@@ -16,8 +18,16 @@ export default defineConfig({
   server: {
     port: 3000,
     proxy: {
-      // used the docker service name so the frontend container can reach the backend container
-      '/api': process.env.VITE_API_URL || 'http://backend:8000',
+      '/api': {
+        target: 'https://127.0.0.1:8000',
+        secure:false, // tells vite to trust djangos self signed cert
+        changeOrigin: true,
+      },
+      '/ws': {
+        target: 'ws://127.0.0.1:8000',
+        ws: true,
+        changeOrigin: true,
+      },
     },
   },
 })
