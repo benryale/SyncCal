@@ -201,3 +201,6 @@ __marimo__/
 backend/.env
 frontend/node_modules/
 .DS_Store
+
+# local TLS certs from mkcert — never commit these
+certs/

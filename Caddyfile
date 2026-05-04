@@ -1,0 +1,28 @@
+# caddy handles https in front of the app. django and vite stay on plain
+# http inside the docker network so only caddy is reachable from outside.
+
+localhost {
+	tls /certs/localhost.pem /certs/localhost-key.pem
+
+	# websocket route has to come before /api since /ws is its own path
+	handle /ws/* {
+		reverse_proxy backend:8000
+	}
+
+	handle /api/* {
+		reverse_proxy backend:8000
+	}
+
+	# everything else goes to Vite (HMR websocket gets upgraded automatically)
+	handle {
+		reverse_proxy frontend:3000
+	}
+
+	encode gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+	}
+}
