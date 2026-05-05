@@ -56,7 +56,7 @@ def _serialize_event(ev: EventSeries) -> dict:
 
 def _friend_ids(user_id: int):
     """Return set of accepted friend user IDs for the given user."""
-    from api.models import FriendRequest
+    from accounts.models import FriendRequest
     rows = FriendRequest.objects.filter(
         Q(from_user_id=user_id, status='accepted') |
         Q(to_user_id=user_id, status='accepted')

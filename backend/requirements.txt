@@ -6,6 +6,7 @@ channels>=4.0
 channels-redis>=4.0
 psycopg2-binary>=2.9
 daphne>=4.0
+pyopenssl<26
 python-dotenv>=1.0
 tzdata>=2024.1
 python-dateutil>=2.8
