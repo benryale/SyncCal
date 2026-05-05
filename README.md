@@ -54,6 +54,20 @@ npm run dev
 Frontend runs at http://localhost:3000
 Backend runs at http://localhost:8000
 
+### 4. Set up HTTPS (one-time)
+
+We run Caddy as a reverse proxy in front of the app to handle https. The first
+time you run the project, you need to generate a local cert that your browser
+will trust.
+
+```bash
+brew install mkcert        # or: apt install mkcert
+./setup-certs.sh
+```
+
+After that, `docker compose up` will start Caddy too, and the app is
+reachable at https://localhost.
+
 ## Features
 
 ### Scheduling & Calendar
