@@ -14,8 +14,8 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
+backend/venv/lib/
+backend/venv/lib64/
 parts/
 sdist/
 var/
@@ -202,5 +202,13 @@ backend/.env
 frontend/node_modules/
 .DS_Store
 
-# local TLS certs from mkcert — never commit these
+# local TLS certs from mkcert, never commit these
 certs/
+
+# local-only tooling, dumps, and editor configs
+.claude/
+directory_dump.txt
+dump_tree.py
+dev.sh
+Sync-Cal/
+next-app/

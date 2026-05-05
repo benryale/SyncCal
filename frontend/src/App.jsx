@@ -16,14 +16,19 @@ function App() {
 
   useEffect(() => {
     const token = localStorage.getItem('token')
-    if (token) {
-      setUser({
-        id:       Number(localStorage.getItem('id')) || null,
-        username: localStorage.getItem('username') || 'User',
-        timezone: localStorage.getItem('timezone') || 'UTC',
+    if (!token) return
+    fetch('/api/users/me/', { headers: { Authorization: `Token ${token}` } })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(data => {
+        setUser({ id: data.id, username: data.username, timezone: data.timezone })
+        localStorage.setItem('id', String(data.id))
+        localStorage.setItem('username', data.username)
+        localStorage.setItem('timezone', data.timezone)
+        setPage('calendar')
       })
-      setPage('calendar')
-    }
+      .catch(() => {
+        ['token', 'id', 'username', 'timezone'].forEach(k => localStorage.removeItem(k))
+      })
   }, [])
 
   const handleLogout = () => {
