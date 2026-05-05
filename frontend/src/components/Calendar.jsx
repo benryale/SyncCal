@@ -5,7 +5,7 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import { ThemeToggle } from '@/components/ThemeToggle';
-import { Bell, Check, X, CalendarDays, Clock3, LoaderCircle, Wifi, WifiOff, AlertTriangle, Keyboard } from 'lucide-react';
+import { Bell, Check, X, CalendarDays, Clock3, LoaderCircle, Wifi, WifiOff, AlertTriangle, Keyboard, Pipette } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { TextGenerateEffect } from '@/components/ui/text-generate-effect';
@@ -413,7 +413,21 @@ const Calendar = ({ visibleFriends = [], user }) => {
     setFormConflicts([]);
   };
 
-  const handleDateClick = (arg) => openNewEventModal(arg.dateStr);
+  const handleDateClick = (arg) => {
+    // on the time grid (week/day) the click already carries an hour, so use it.
+    // on the month view we get a date with no time, so we drop in the current
+    // hour rounded up to the next half hour.
+    const start = new Date(arg.date);
+    if (arg.allDay) {
+      const now = new Date();
+      start.setHours(now.getHours(), now.getMinutes(), 0, 0);
+      const m = start.getMinutes();
+      const bump = m === 0 ? 0 : m <= 30 ? 30 - m : 60 - m;
+      start.setMinutes(start.getMinutes() + bump);
+    }
+    const end = new Date(start.getTime() + 60 * 60 * 1000);
+    openNewEventForRange(start, end);
+  };
 
   const handleEventClick = (info) => {
     const ev = info.event;
@@ -691,7 +705,7 @@ const Calendar = ({ visibleFriends = [], user }) => {
       </div>
 
       <Dialog open={showModal} onOpenChange={(open) => { if (!open) closeModal(); }}>
-        <DialogContent className="p-0 sm:max-w-md overflow-visible">
+        <DialogContent className="p-0 sm:max-w-lg overflow-visible">
           <DialogHeader className="px-6 pt-5 pb-1 text-center">
             <DialogTitle className="text-lg font-semibold">
               {selectedId ? 'Edit event' : 'New event'}
@@ -704,31 +718,14 @@ const Calendar = ({ visibleFriends = [], user }) => {
             <div className="grid gap-4 px-6 pb-5">
 
               
-              <div className="grid gap-1.5">
+              <div className="grid gap-2">
                 <Label htmlFor="title" className="text-sm font-medium">Event title</Label>
-                <div className="flex gap-2">
-                  <Input id="title" name="title" value={formData.title}
-                    onChange={handleInputChange}
-                    placeholder="Study group, office hours, dinner plans"
-                    className="h-10 bg-muted/50 flex-1" required />
-                  
-                  <div className="relative shrink-0">
-                    <input
-                      type="color"
-                      value={formData.color}
-                      onChange={e => setFormData(f => ({ ...f, color: e.target.value }))}
-                      className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
-                      title="Pick event color"
-                    />
-                    <div
-                      className="h-10 w-10 rounded-md border border-border cursor-pointer flex items-center justify-center"
-                      style={{ backgroundColor: formData.color }}
-                      title="Pick event color"
-                    />
-                  </div>
-                </div>
-                
-                <div className="flex gap-1.5 flex-wrap">
+                <Input id="title" name="title" value={formData.title}
+                  onChange={handleInputChange}
+                  placeholder="Study group, office hours, dinner plans"
+                  className="h-10 bg-muted/50" required />
+
+                <div className="flex justify-center items-center gap-1.5 flex-wrap pt-0.5">
                   {EVENT_COLORS.map(c => (
                     <button
                       key={c.value}
@@ -741,6 +738,33 @@ const Calendar = ({ visibleFriends = [], user }) => {
                       style={{ backgroundColor: c.value }}
                     />
                   ))}
+                  {/* dashed eyedropper circle. once the user picks a color that
+                      isn't one of the presets, recolor the dashed ring to match
+                      so it still reads as the active selection. */}
+                  {(() => {
+                    const isCustom = !EVENT_COLORS.some(c => c.value.toLowerCase() === formData.color.toLowerCase());
+                    return (
+                      <label
+                        title="Pick a custom color"
+                        className={`ml-1 flex size-5 cursor-pointer items-center justify-center rounded-full border border-dashed transition-colors ${
+                          isCustom ? '' : 'border-muted-foreground/60 text-muted-foreground hover:border-foreground hover:text-foreground'
+                        }`}
+                        style={{
+                          borderColor: isCustom ? formData.color : undefined,
+                          color: isCustom ? formData.color : undefined,
+                        }}
+                      >
+                        <Pipette className="size-3" />
+                        <input
+                          type="color"
+                          value={formData.color}
+                          onChange={e => setFormData(f => ({ ...f, color: e.target.value }))}
+                          className="sr-only"
+                          tabIndex={-1}
+                        />
+                      </label>
+                    );
+                  })()}
                 </div>
               </div>
 
