@@ -11,6 +11,10 @@ import { TextGenerateEffect } from '@/components/ui/text-generate-effect';
 import { EventHoverTooltip } from '@/components/ui/event-hover-tooltip';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { fromZonedTime, toZonedTime, format as formatInTz } from 'date-fns-tz';
@@ -221,6 +225,7 @@ const Calendar = ({ visibleFriends = [], user }) => {
   const [formConflicts, setFormConflicts] = useState([]);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const lastInviteCount = useRef(null);
   const calRef = useRef(null);
 
@@ -481,14 +486,19 @@ const Calendar = ({ visibleFriends = [], user }) => {
     setHoveredTip(c => c?.eventId === info.event.id ? null : c);
   };
 
-  const handleDelete = async () => {
-    if (!window.confirm('Delete this event?')) return;
+  const handleDelete = () => setConfirmDelete(true);
+
+  const doDelete = async () => {
     try {
       await axios.delete(`/api/events/${selectedId}/`);
       setEvents(prev => prev.filter(ev => String(ev.id) !== String(selectedId)));
       toast.success('Event deleted');
+      setConfirmDelete(false);
       closeModal();
-    } catch { toast.error("Couldn't delete the event."); }
+    } catch {
+      toast.error("Couldn't delete the event.");
+      setConfirmDelete(false);
+    }
   };
 
   const handleInviteResponse = async (inviteId, status) => {
@@ -750,6 +760,26 @@ const Calendar = ({ visibleFriends = [], user }) => {
           </form>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this event?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will remove the event from your calendar and notify anyone you invited. You can't undo this.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-white hover:bg-destructive/90"
+              onClick={doDelete}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
