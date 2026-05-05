@@ -75,13 +75,19 @@ CHANNEL_LAYERS = {
 
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [
+    'https://localhost',
     'http://localhost:3000',
-    'http://127.0.0.1:3000'
+    'http://127.0.0.1:3000',
 ]
 CSRF_TRUSTED_ORIGINS = [
+    'https://localhost',
     "http://localhost:3000",
     "http://127.0.0.1:3000",
 ]
+
+# caddy is in front handling https, so trust its forwarded proto header
+# when it says the original request was https
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # temporarily change to allow event creation
 REST_FRAMEWORK = {
@@ -101,8 +107,19 @@ REST_FRAMEWORK = {
 }"""
 CSRF_COOKIE_SAMESITE = 'Lax'
 SESSION_COOKIE_SAMESITE = 'Lax'
-SESSION_COOKIE_SECURE = False
-CSRF_COOKIE_SECURE = False
+
+# keep these off in dev so login works without caddy and we don't hit a
+# redirect loop. flip them on in prod to enforce https end to end.
+if DEBUG:
+    SESSION_COOKIE_SECURE = False
+    CSRF_COOKIE_SECURE = False
+else:
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SECURE_SSL_REDIRECT = True
 
 
 AUTH_PASSWORD_VALIDATORS = [
