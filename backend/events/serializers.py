@@ -2,12 +2,8 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 
 from rest_framework import serializers
 from . import zone_utils
-from .models import Category, EventSeries, EventInvite
-
-class CategorySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Category
-        fields = '__all__'
+from .models import EventSeries, EventInvite
+from .visibility import user_can_see_event_details, redact_event_dict
 
 class EventInviteSerializer(serializers.ModelSerializer):
     organizer_username = serializers.ReadOnlyField(source='event.organizer.username')
@@ -43,7 +39,7 @@ class EventSeriesSerializer(serializers.ModelSerializer):
     class Meta:
         model = EventSeries
         fields = [
-            'id', 'title', 'category', 'dtstart', 'duration', 'priority',
+            'id', 'title', 'dtstart', 'duration', 'priority',
             'description', 'location', 'organizer', 'shared_with',
             'rrule', 'timezone', 'color', 'created_at', 'updated_at',
             'start_date', 'end_date',
@@ -58,6 +54,10 @@ class EventSeriesSerializer(serializers.ModelSerializer):
             instance.dtstart, instance.duration, instance.timezone
         )
         data['end_date'] = self.fields['dtstart'].to_representation(end_utc)
+        # redact non-time fields if the requester isn't entitled to full details
+        request = self.context.get('request')
+        if request is not None and not user_can_see_event_details(request.user, instance):
+            redact_event_dict(data)
         return data
 
     def validate_timezone(self, value):

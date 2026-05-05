@@ -20,8 +20,9 @@ from .merge import (
     override_is_empty,
     override_value_for_field,
 )
-from .models import EventSeries, Category, EventInvite, EventOccurrenceOverride
-from .serializers import EventSeriesSerializer, CategorySerializer, EventInviteSerializer
+from .models import EventSeries, EventInvite, EventOccurrenceOverride
+from .serializers import EventSeriesSerializer, EventInviteSerializer
+from .visibility import accepted_friend_ids
 from .zone_utils import add_duration_wallclock
 from accounts.models import FriendRequest
 
@@ -68,12 +69,6 @@ def _write_override_field(ov, field, v_b):
         ov.priority_override = v_b[0]
 
 
-# handles all category CRUD (create, read, update, delete)
-class CategoryViewSet(viewsets.ModelViewSet):
-    queryset = Category.objects.all()
-    serializer_class = CategorySerializer
-
-
 # handles all event CRUD with permission filtering
 class EventSeriesViewSet(viewsets.ModelViewSet):
     serializer_class = EventSeriesSerializer
@@ -85,12 +80,14 @@ class EventSeriesViewSet(viewsets.ModelViewSet):
         if user.is_anonymous:
             return EventSeries.objects.none()
         #check if react is asking for friends calenar
-        owner_ids = self.request.query_params.get('owner_id__in')
-        if owner_ids:
+        owner_ids_param = self.request.query_params.get('owner_id__in')
+        if owner_ids_param:
             #convert string of ids into list of ints
-            owner_ids = [int(id) for id in owner_ids.split(',') if id.isdigit()]
-            #return the events where organizer is in the list of owner_ids
-            return EventSeries.objects.filter(organizer_id__in = owner_ids)
+            requested_ids = [int(id) for id in owner_ids_param.split(',') if id.isdigit()]
+            #only honor ids that are accepted friends of the requester; strangers get filtered out silently
+            friend_ids = accepted_friend_ids(user.id)
+            allowed_ids = [oid for oid in requested_ids if oid in friend_ids]
+            return EventSeries.objects.filter(organizer_id__in=allowed_ids)
         #if no friend is selected, just return events of the logged in user
         accepted_event_ids = EventInvite.objects.filter(
             user = user,
@@ -431,7 +428,6 @@ def split_series(request, series_id):
             dtstart     = R,
             duration    = new_template['duration'],
             timezone    = new_template['timezone'],
-            category    = series.category,
             organizer   = series.organizer,
             rrule       = original_rrule,
         )

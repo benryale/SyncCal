@@ -3,6 +3,7 @@ import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
+import luxonPlugin from '@fullcalendar/luxon3';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Bell, Check, X, CalendarDays, Clock3, LoaderCircle, Wifi, WifiOff, AlertTriangle, Keyboard } from 'lucide-react';
 import axios from 'axios';
@@ -589,7 +590,7 @@ const Calendar = ({ visibleFriends = [], user }) => {
       <FullCalendar
         ref={calRef}
         timeZone={userTz}
-        plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+        plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, luxonPlugin]}
         initialView="dayGridMonth"
         headerToolbar={{ left: 'title', center: 'dayGridMonth,timeGridWeek,timeGridDay', right: 'prev,next today' }}
         events={events}

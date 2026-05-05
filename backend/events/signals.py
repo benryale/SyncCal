@@ -15,11 +15,11 @@ Broadcast targets:
 
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
-from django.db.models import Q
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 
 from .models import EventSeries, EventInvite
+from .visibility import accepted_friend_ids, entitled_viewer_ids, redact_event_dict
 
 
 
@@ -54,24 +54,17 @@ def _serialize_event(ev: EventSeries) -> dict:
     }
 
 
-def _friend_ids(user_id: int):
-    """Return set of accepted friend user IDs for the given user."""
-    from accounts.models import FriendRequest
-    rows = FriendRequest.objects.filter(
-        Q(from_user_id=user_id, status='accepted') |
-        Q(to_user_id=user_id, status='accepted')
-    ).values_list('from_user_id', 'to_user_id')
-    ids = set()
-    for fid, tid in rows:
-        ids.add(tid if fid == user_id else fid)
-    return ids
-
-
-def _broadcast_event(action: str, event_data: dict, organizer_id: int):
-    payload = {'type': 'calendar_event', 'action': action, 'event': event_data}
-    _push(f"user_{organizer_id}", 'calendar.event.update', payload)
+def _broadcast_event(action: str, event: EventSeries):
+    organizer_id = event.organizer_id
+    full_data = _serialize_event(event)
+    full_payload = {'type': 'calendar_event', 'action': action, 'event': full_data}
+    _push(f"user_{organizer_id}", 'calendar.event.update', full_payload)
     try:
-        for fid in _friend_ids(organizer_id):
+        redacted_data = redact_event_dict(dict(full_data))
+        redacted_payload = {'type': 'calendar_event', 'action': action, 'event': redacted_data}
+        entitled = entitled_viewer_ids(event)
+        for fid in accepted_friend_ids(organizer_id):
+            payload = full_payload if fid in entitled else redacted_payload
             _push(f"friend_{fid}", 'calendar.event.update', payload)
     except Exception:
         pass
@@ -81,11 +74,12 @@ def _broadcast_event(action: str, event_data: dict, organizer_id: int):
 @receiver(post_save, sender=EventSeries)
 def on_event_series_saved(sender, instance: EventSeries, created: bool, **kwargs):
     action = 'created' if created else 'updated'
-    _broadcast_event(action, _serialize_event(instance), instance.organizer_id)
+    _broadcast_event(action, instance)
 
 
 @receiver(post_delete, sender=EventSeries)
 def on_event_series_deleted(sender, instance: EventSeries, **kwargs):
+    # delete payload carries no leakable fields
     payload = {
         'type': 'calendar_event',
         'action': 'deleted',
@@ -93,7 +87,7 @@ def on_event_series_deleted(sender, instance: EventSeries, **kwargs):
     }
     _push(f"user_{instance.organizer_id}", 'calendar.event.update', payload)
     try:
-        for fid in _friend_ids(instance.organizer_id):
+        for fid in accepted_friend_ids(instance.organizer_id):
             _push(f"friend_{fid}", 'calendar.event.update', payload)
     except Exception:
         pass

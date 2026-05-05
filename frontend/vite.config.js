@@ -17,6 +17,8 @@ export default defineConfig({
   },
   server: {
     port: 3000,
+    host: true,
+    strictPort: true,
     proxy: {
       '/api': {
         target: 'https://127.0.0.1:8000',
@@ -24,8 +26,9 @@ export default defineConfig({
         changeOrigin: true,
       },
       '/ws': {
-        target: 'ws://127.0.0.1:8000',
+        target: 'wss://127.0.0.1:8000',
         ws: true,
+        secure: false,
         changeOrigin: true,
       },
     },

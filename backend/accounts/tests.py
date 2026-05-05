@@ -15,7 +15,7 @@ from .models import UserProfile
 # so the regular `from . import ...` form doesn't work.
 _BACKFILL_MIGRATION = import_module('accounts.migrations.0004_backfill_userprofiles')
 
-"""this file contains tests for the api app that require the db. 
+"""this file contains tests for the accounts app that require the db.
 these tests include signals, data migrations, and any other code more easily tested with db 
 than with pure unit tests. """
 class UserProfileSignalTests(TestCase):
