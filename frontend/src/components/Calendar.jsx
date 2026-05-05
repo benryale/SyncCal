@@ -354,6 +354,18 @@ const Calendar = ({ visibleFriends = [], user }) => {
     setShowModal(true);
   };
 
+  // when the user drags out a time range in week/day view, open the modal
+  // with those exact times pre-filled instead of the default 10-11am
+  const openNewEventForRange = (startDate, endDate) => {
+    setSelectedId(null);
+    setFormData({
+      ...makeInitialForm(userTz),
+      start_date: formatForInput(startDate, userTz),
+      end_date:   formatForInput(endDate, userTz),
+    });
+    setShowModal(true);
+  };
+
   const closeModal = () => {
     setShowModal(false);
     setSubmitting(false);
@@ -601,6 +613,15 @@ const Calendar = ({ visibleFriends = [], user }) => {
         editable={true}
         eventDrop={handleEventDrop}
         eventResize={handleEventResize}
+        // drag across the time grid to pre-fill the new event modal with
+        // those start/end times
+        selectable={true}
+        select={(info) => openNewEventForRange(info.start, info.end)}
+        // red line at the current time on week/day views
+        nowIndicator={true}
+        // hide overnight hours so the grid focuses on the daytime planning window
+        slotMinTime="06:00:00"
+        slotMaxTime="23:00:00"
         height="75vh"
         eventDisplay="block"
       />
