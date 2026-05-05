@@ -533,3 +533,74 @@ class ConflictDetectionZoneAgnosticTests(TestCase):
         ob = list(resolve_occurrences(b, *window))[0]
 
         self.assertTrue(oa['start'] < ob['end'] and ob['start'] < oa['end'])
+
+
+class FriendEventVisibilityTests(APITestCase):
+
+    def setUp(self):
+        from accounts.models import FriendRequest
+        self.organizer = User.objects.create_user(username='organizer', password='pass')
+        self.friend    = User.objects.create_user(username='friend',    password='pass')
+        self.stranger  = User.objects.create_user(username='stranger',  password='pass')
+        FriendRequest.objects.create(
+            from_user=self.friend, to_user=self.organizer, status='accepted',
+        )
+        self.event = _make_series(
+            self.organizer,
+            title='Therapy',
+            description='weekly',
+            location='Office 3B',
+            priority=5,
+        )
+
+    def test_friend_with_no_share_sees_only_time(self):
+        self.client.force_authenticate(user=self.friend)
+        r = self.client.get(f'/api/events/?owner_id__in={self.organizer.id}')
+        self.assertEqual(r.status_code, 200)
+        body = r.json()
+        self.assertEqual(len(body), 1)
+        ev = body[0]
+        self.assertTrue(ev['dtstart'])
+        self.assertTrue(ev['start_date'])
+        self.assertTrue(ev['end_date'])
+        self.assertEqual(ev['organizer'], 'organizer')
+        self.assertEqual(ev['title'], '')
+        self.assertEqual(ev['description'], '')
+        self.assertEqual(ev['location'], '')
+        self.assertIsNone(ev['priority'])
+
+    def test_friend_with_accepted_invite_sees_full(self):
+        EventInvite.objects.create(event=self.event, user=self.friend, status='accepted')
+        self.client.force_authenticate(user=self.friend)
+        r = self.client.get(f'/api/events/?owner_id__in={self.organizer.id}')
+        self.assertEqual(r.status_code, 200)
+        ev = r.json()[0]
+        self.assertEqual(ev['title'], 'Therapy')
+        self.assertEqual(ev['description'], 'weekly')
+        self.assertEqual(ev['location'], 'Office 3B')
+        self.assertEqual(ev['priority'], 5)
+
+    def test_friend_in_shared_with_sees_full(self):
+        self.event.shared_with.add(self.friend)
+        self.client.force_authenticate(user=self.friend)
+        r = self.client.get(f'/api/events/?owner_id__in={self.organizer.id}')
+        self.assertEqual(r.status_code, 200)
+        ev = r.json()[0]
+        self.assertEqual(ev['title'], 'Therapy')
+        self.assertEqual(ev['description'], 'weekly')
+        self.assertEqual(ev['location'], 'Office 3B')
+
+    def test_non_friend_owner_id_request_returns_empty(self):
+        self.client.force_authenticate(user=self.stranger)
+        r = self.client.get(f'/api/events/?owner_id__in={self.organizer.id}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.json(), [])
+
+    def test_organizer_own_events_unredacted(self):
+        self.client.force_authenticate(user=self.organizer)
+        r = self.client.get('/api/events/')
+        self.assertEqual(r.status_code, 200)
+        ev = next(e for e in r.json() if e['id'] == self.event.id)
+        self.assertEqual(ev['title'], 'Therapy')
+        self.assertEqual(ev['description'], 'weekly')
+        self.assertEqual(ev['location'], 'Office 3B')

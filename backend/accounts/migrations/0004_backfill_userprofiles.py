@@ -3,9 +3,9 @@ from django.db import migrations
 
 
 def backfill_profiles(apps, schema_editor):
-    # use historical models not api.models
+    # use historical models not accounts.models
     User = apps.get_model(settings.AUTH_USER_MODEL)
-    UserProfile = apps.get_model('api', 'UserProfile')
+    UserProfile = apps.get_model('accounts', 'UserProfile')
 
     existing_user_ids = set(UserProfile.objects.values_list('user_id', flat=True))
     missing = User.objects.exclude(id__in=existing_user_ids)
@@ -15,14 +15,14 @@ def backfill_profiles(apps, schema_editor):
 
 
 def delete_all_profiles(apps, schema_editor):
-    UserProfile = apps.get_model('api', 'UserProfile')
+    UserProfile = apps.get_model('accounts', 'UserProfile')
     UserProfile.objects.all().delete()
 
 
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('api', '0003_userprofile'),
+        ('accounts', '0003_userprofile'),
     ]
 
     operations = [
