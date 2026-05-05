@@ -1,12 +1,5 @@
-/**
- * FriendList.jsx — updated to respond to WebSocket push notifications.
- *
- * Changes vs original:
- *  - Subscribes to WS messages of type 'friend_request'
- *  - When a friend request arrives or changes status, updates state in real-time
- *  - No longer relies solely on the 30-second poll for notifications
- *  - Kept the 60-second poll as a safety fallback
- */
+// friend list dropdown. listens for ws friend_request messages so requests
+// pop in instantly, with a 60s poll as a fallback in case the socket drops.
 import { useState, useEffect, useRef } from 'react'
 import { Users, Check, X } from 'lucide-react'
 import { toast } from 'sonner'
@@ -26,14 +19,13 @@ function FriendList({ user, visibleFriends = [], onVisibleFriendsChange = () => 
 
   const { subscribe } = useWebSocket()
 
-  // ── WebSocket: react to friend_request messages immediately ────────── //
+  // react to ws friend_request messages so the badge and list update live
   useEffect(() => {
     if (!user) return
     const unsub = subscribe((msg) => {
       if (msg.type !== 'friend_request') return
 
       if (msg.action === 'created' && msg.to_user_id === user.id) {
-        // Someone sent us a request — add it to the list
         setPendingRequests(prev => {
           if (prev.some(r => r.id === msg.id)) return prev
           return [...prev, {
@@ -45,10 +37,8 @@ function FriendList({ user, visibleFriends = [], onVisibleFriendsChange = () => 
         })
         toast(`${msg.from_username} sent you a friend request`)
       } else if ((msg.action === 'accepted' || msg.action === 'declined')) {
-        // A request we sent was responded to, or our own accept/decline propagated
         setPendingRequests(prev => prev.filter(r => r.id !== msg.id))
         if (msg.action === 'accepted') {
-          // Refresh friends list so the new friend appears
           fetchFriends()
         }
       }
@@ -56,14 +46,13 @@ function FriendList({ user, visibleFriends = [], onVisibleFriendsChange = () => 
     return unsub
   }, [subscribe, user])
 
-  // ── fetch on open ─────────────────────────────────────────────────── //
   useEffect(() => {
     if (!user || !open) return
     fetchPending()
     fetchFriends()
   }, [user, open])
 
-  // Safety fallback poll (60 s) — WS handles real-time
+  // poll once a minute as a fallback if the socket is down
   useEffect(() => {
     if (!user) return
     fetchPending()
@@ -71,7 +60,6 @@ function FriendList({ user, visibleFriends = [], onVisibleFriendsChange = () => 
     return () => clearInterval(interval)
   }, [user])
 
-  // Close on outside click
   useEffect(() => {
     function h(e) {
       if (containerRef.current && !containerRef.current.contains(e.target)) setOpen(false)

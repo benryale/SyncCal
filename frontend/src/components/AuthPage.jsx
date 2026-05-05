@@ -22,7 +22,7 @@ function AuthPage({ onAuth, initialMode = 'login' }) {
     setRegistered(false)
   }, [initialMode])
 
-  // auto direct the user to login 2.5 seconds after successful registration
+  // bounce to the login form 2.5s after a successful registration
   useEffect(() => {
     if (!registered) return
     const t = setTimeout(() => {
@@ -89,7 +89,11 @@ function AuthPage({ onAuth, initialMode = 'login' }) {
         return
       }
 
-      if (!res.ok) {
+      if (res.status === 429) {
+        // 429 means the backend's rate limit hit. show the cooldown message.
+        const mins = Math.ceil((data.retry_after || 300) / 60)
+        setError(`Too many failed attempts on this account. Try again in ${mins} minute${mins === 1 ? '' : 's'}.`)
+      } else if (!res.ok) {
         setError(data.error || 'Something went wrong. Please try again.')
       } else if (mode === 'register') {
         setRegistered(true)
@@ -104,7 +108,7 @@ function AuthPage({ onAuth, initialMode = 'login' }) {
     }
   }
 
-  // ── account creation success banner───── //
+  // success banner shown for 2.5s after registration before bouncing to login
   if (registered) {
     return (
       <div className="mx-auto mt-20 max-w-sm">
@@ -118,7 +122,7 @@ function AuthPage({ onAuth, initialMode = 'login' }) {
           <p className="mt-2 text-sm text-green-700 dark:text-green-400">
             Taking you to sign in…
           </p>
-          {/* progress bar shown for visual */}
+          {/* progress bar fills over 2.5s so the user knows the auto-redirect is coming */}
           <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-green-200 dark:bg-green-800">
             <div
               className="h-full rounded-full bg-green-500"

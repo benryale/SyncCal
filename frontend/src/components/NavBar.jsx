@@ -1,6 +1,3 @@
-/**
- * NavBar.jsx — adds avatar dropdown with "Profile" and "Sign out" links
- */
 import { useState, useRef, useEffect } from 'react'
 import { CalendarSync, User, LogOut, ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
