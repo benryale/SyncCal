@@ -2,8 +2,13 @@
 $ErrorActionPreference = "Stop"
 $root = $PSScriptRoot
 
-# 1. Postgres + Redis (idempotent — no-op if already running)
-docker-compose -f "$root\docker-compose.yml" up -d
+# 0. Stop any old daphne/vite still bound to our dev ports
+Get-NetTCPConnection -LocalPort 8000,3000 -State Listen -ErrorAction SilentlyContinue |
+    Select-Object -ExpandProperty OwningProcess -Unique |
+    ForEach-Object { Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue }
+
+# 1. Redis (idempotent — no-op if already running)
+docker-compose -f "$root\docker-compose.yml" up -d --remove-orphans
 
 # 2. Backend in its own window
 Start-Process powershell -ArgumentList "-NoExit", "-Command", @"

@@ -6,16 +6,8 @@ from .zone_utils import validate_iana_timezone
 
 # Create your models here.
 
-#First we define what an event looks like. Taken from Geeks for Geeks tutorial
-class Category(models.Model):
-    name = models.CharField(max_length=100)
-
-    def __str__(self):
-        return self.name
-
 class EventSeries(models.Model):
     title = models.CharField(max_length=150) # Changed from 'name' to 'title' to match FullCalendar
-    category = models.ForeignKey(Category, on_delete=models.CASCADE, null=True, blank=True)
     dtstart = models.DateTimeField() # RFC 5545 DTSTART
     duration = models.DurationField() # RFC 5545 DURATION
     priority = models.IntegerField(default=1)

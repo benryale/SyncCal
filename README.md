@@ -7,23 +7,26 @@ A collaborative calendar application for identifying mutual free time across mul
 ## Stack
 - **Frontend:** React + FullCalendar + Vite
 - **Backend:** Django + Django Channels (WebSockets)
-- **Database:** PostgreSQL
+- **Database:** SQLite (file-based, no setup required)
 - **Real-time:** Redis + Django Channels + Daphne (ASGI)
 
 ## Getting Started
 
 ### Prerequisites
-- Docker + Docker Compose
 - Python 3.11+
 - Node.js 18+
-- Redis
+- Redis (run natively, or via Docker)
 
-### 1. Start the database and Redis
+### 1. Start Redis
+The database is SQLite and needs no setup — Django creates
+`backend/db.sqlite3` on first `migrate` (step 2 below).
+
+With Docker:
 ```bash
 docker-compose up -d
 ```
 
-If not using Docker, start Redis manually:
+Without Docker:
 ```bash
 redis-server
 ```

@@ -8,9 +8,10 @@ from events.zone_utils import validate_iana_timezone
 """
 # one row per User; auto-created via post_save signal
 class UserProfile(models.Model):
-    # one to one relationship to user; cascade delete so profile goes away if user is deleted; reverse relation is user.user_profile
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='user_profile')
+    # one to one relationship to user; cascade delete so profile goes away if user is deleted; reverse relation is user.profile
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     timezone   = models.CharField(max_length=64, default='UTC')
+    avatar = models.ImageField(upload_to='avatars/', null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -54,12 +55,3 @@ class FriendRequest(models.Model):
     def __str__(self):
         # return string of the form "from_user -> to_user (status)" for debugging. not used in API responses
         return f'{self.from_user.username} -> {self.to_user.username} ({self.status})'
-    
-
-
-
-#create another database that extend the default User from Django 
-class Profile(models.Model):
-    #Create an OnetoOne relationship to User (default to auth User)
-    user = models.OneToOneField( User, on_delete=models.CASCADE, related_name='profile' )    #image store to avatars/
-    avatar = models.ImageField(upload_to='avatars/', null=True, blank=True)
