@@ -128,8 +128,6 @@ const detectConflicts = (start, end, events, editId = null) => {
   });
 };
 
-// store onboarding state per user so the tour only shows once per account
-
 const TOUR_STEPS = [
   {
     icon: <CalendarDays className="size-8 text-blue-500" />,
@@ -155,8 +153,7 @@ const TOUR_STEPS = [
 
 function OnboardingModal({ onDone }) {
   const [step, setStep] = useState(0);
-  // direction tracks which way the user is moving so the slide animation
-  // goes left-to-right when going forward and the opposite when going back
+  // direction tells the slide animation which way to go (next vs back)
   const [direction, setDirection] = useState(1);
   const s = TOUR_STEPS[step];
 
@@ -268,6 +265,7 @@ const Calendar = ({ visibleFriends = [], user }) => {
 
   const { connected, subscribe } = useWebSocket();
 
+  // show the tour once per user, gated by a localStorage flag keyed on user id
   useEffect(() => {
     if (!user?.id) return;
     const key = `synccal_onboarded_${user.id}`;
@@ -396,8 +394,7 @@ const Calendar = ({ visibleFriends = [], user }) => {
     setShowModal(true);
   };
 
-  // when the user drags out a time range in week/day view, open the modal
-  // with those exact times pre-filled instead of the default 10-11am
+  // pre-fill the modal with the dragged-out range instead of the default 10-11am
   const openNewEventForRange = (startDate, endDate) => {
     setSelectedId(null);
     setFormData({
@@ -661,21 +658,18 @@ const Calendar = ({ visibleFriends = [], user }) => {
           editable={true}
           eventDrop={handleEventDrop}
           eventResize={handleEventResize}
-          // drag across the time grid to pre-fill the new event modal with
-          // those start/end times
+          // drag across the time grid to pre-fill the new event modal
           selectable={true}
           select={(info) => openNewEventForRange(info.start, info.end)}
-          // red line at the current time on week/day views
           nowIndicator={true}
-          // hide overnight hours so the grid focuses on the daytime planning window
+          // limit the day grid to typical waking hours
           slotMinTime="06:00:00"
           slotMaxTime="23:00:00"
           height="75vh"
           eventDisplay="block"
         />
 
-        {/* float a friendly notice over the empty grid until the user adds something. */}
-        {/* pointer-events-none so clicks pass straight through to the day cells. */}
+        {/* friendly notice over the empty grid; clicks pass through to the day cells */}
         {events.filter(e => !e.extendedProps?.isFriendEvent).length === 0 && (
           <motion.div
             className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center"
