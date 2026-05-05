@@ -89,7 +89,11 @@ function AuthPage({ onAuth, initialMode = 'login' }) {
         return
       }
 
-      if (!res.ok) {
+      if (res.status === 429) {
+        // login rate limit kicked in. display to the user a friendly cooldown message.
+        const mins = Math.ceil((data.retry_after || 300) / 60)
+        setError(`Too many failed attempts on this account. Try again in ${mins} minute${mins === 1 ? '' : 's'}.`)
+      } else if (!res.ok) {
         setError(data.error || 'Something went wrong. Please try again.')
       } else if (mode === 'register') {
         setRegistered(true)

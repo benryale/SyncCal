@@ -7,6 +7,7 @@ from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.views.decorators.csrf import csrf_exempt
 from django.db.models import Q
+from django_ratelimit.core import is_ratelimited
 from rest_framework import status
 from rest_framework.authtoken.models import Token
 from rest_framework.decorators import api_view, permission_classes
@@ -15,6 +16,12 @@ from rest_framework.response import Response
 
 from events.zone_utils import validate_iana_timezone
 from .models import FriendRequest, UserProfile
+
+# 4 wrong logins for the same username locks that account out for 5 min.
+# scoped per-username so a typo on one account doesn't lock everyone on
+# the same network out during the demo.
+LOGIN_RATE = '4/5m'
+LOGIN_GROUP = 'login'
 
 logger = logging.getLogger(__name__)
 
@@ -213,12 +220,36 @@ def login_view(request):
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
 
-    data = json.loads(request.body)
-    username = data.get('username')
-    password = data.get('password')
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid request body'}, status=400)
+
+    username = (data.get('username') or '').strip()
+    password = data.get('password') or ''
+
+    if not username or not password:
+        return JsonResponse({'error': 'Username and password are required'}, status=400)
+
+    # the rate-limit key for this username. lowercased so case variations
+    # don't sneak past the limit.
+    rl_key = lambda g, r: username.lower()
+
+    # check the cooldown first without bumping the counter. we only want
+    # failed logins to count toward the limit.
+    if is_ratelimited(request, group=LOGIN_GROUP, fn=login_view,
+                      key=rl_key, rate=LOGIN_RATE, method='POST', increment=False):
+        return JsonResponse(
+            {'error': 'Too many failed attempts. Try again in 5 minutes.',
+             'retry_after': 300},
+            status=429,
+        )
 
     user = authenticate(request, username=username, password=password)
     if user is None:
+        # bump the counter for this username
+        is_ratelimited(request, group=LOGIN_GROUP, fn=login_view,
+                       key=rl_key, rate=LOGIN_RATE, method='POST', increment=True)
         return JsonResponse({'error': 'Invalid credentials'}, status=401)
 
     token, _ = Token.objects.get_or_create(user=user)
