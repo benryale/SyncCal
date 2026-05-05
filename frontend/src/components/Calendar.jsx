@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
@@ -154,16 +155,51 @@ const TOUR_STEPS = [
 
 function OnboardingModal({ onDone }) {
   const [step, setStep] = useState(0);
+  // direction tracks which way the user is moving so the slide animation
+  // goes left-to-right when going forward and the opposite when going back
+  const [direction, setDirection] = useState(1);
   const s = TOUR_STEPS[step];
+
+  const goTo = (next) => {
+    setDirection(next > step ? 1 : -1);
+    setStep(next);
+  };
+
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="w-full max-w-sm rounded-2xl border bg-popover p-6 shadow-2xl">
-        <div className="mb-4 flex justify-center">{s.icon}</div>
-        <h2 className="mb-2 text-center text-lg font-bold text-foreground">{s.title}</h2>
-        <p className="mb-6 text-center text-sm text-muted-foreground">{s.body}</p>
-        <div className="mb-4 flex justify-center gap-1.5">
+    <motion.div
+      className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.18 }}
+    >
+      <motion.div
+        className="w-full max-w-sm rounded-2xl border bg-popover p-6 shadow-2xl"
+        initial={{ opacity: 0, scale: 0.95, y: 8 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: 0.22, ease: 'easeOut' }}
+      >
+        <div className="relative h-32 overflow-hidden">
+          <AnimatePresence mode="wait" initial={false} custom={direction}>
+            <motion.div
+              key={step}
+              custom={direction}
+              initial={{ opacity: 0, x: direction * 24 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -direction * 24 }}
+              transition={{ duration: 0.22, ease: 'easeOut' }}
+              className="absolute inset-0 flex flex-col items-center"
+            >
+              <div className="mb-3 flex justify-center">{s.icon}</div>
+              <h2 className="mb-2 text-center text-lg font-bold text-foreground">{s.title}</h2>
+              <p className="text-center text-sm text-muted-foreground">{s.body}</p>
+            </motion.div>
+          </AnimatePresence>
+        </div>
+
+        <div className="mt-4 mb-4 flex justify-center gap-1.5">
           {TOUR_STEPS.map((_, i) => (
-            <button key={i} onClick={() => setStep(i)}
+            <button key={i} onClick={() => goTo(i)}
               className={`h-2 rounded-full transition-all ${i === step ? 'w-6 bg-blue-500' : 'w-2 bg-muted'}`} />
           ))}
         </div>
@@ -171,14 +207,14 @@ function OnboardingModal({ onDone }) {
           {step < TOUR_STEPS.length - 1 ? (
             <>
               <Button variant="ghost" className="flex-1" onClick={onDone}>Skip</Button>
-              <Button className="flex-1" onClick={() => setStep(s => s + 1)}>Next</Button>
+              <Button className="flex-1" onClick={() => goTo(step + 1)}>Next</Button>
             </>
           ) : (
             <Button className="w-full" onClick={onDone}>Get started!</Button>
           )}
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
 
@@ -609,33 +645,56 @@ const Calendar = ({ visibleFriends = [], user }) => {
         </div>
       </div>
 
-      <FullCalendar
-        ref={calRef}
-        timeZone={userTz}
-        plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-        initialView="dayGridMonth"
-        headerToolbar={{ left: 'title', center: 'dayGridMonth,timeGridWeek,timeGridDay', right: 'prev,next today' }}
-        events={events}
-        dateClick={handleDateClick}
-        dayCellClassNames={getDayCellClass}
-        eventClick={handleEventClick}
-        eventDidMount={handleEventMount}
-        eventWillUnmount={handleEventWillUnmount}
-        editable={true}
-        eventDrop={handleEventDrop}
-        eventResize={handleEventResize}
-        // drag across the time grid to pre-fill the new event modal with
-        // those start/end times
-        selectable={true}
-        select={(info) => openNewEventForRange(info.start, info.end)}
-        // red line at the current time on week/day views
-        nowIndicator={true}
-        // hide overnight hours so the grid focuses on the daytime planning window
-        slotMinTime="06:00:00"
-        slotMaxTime="23:00:00"
-        height="75vh"
-        eventDisplay="block"
-      />
+      <div className="relative">
+        <FullCalendar
+          ref={calRef}
+          timeZone={userTz}
+          plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+          initialView="dayGridMonth"
+          headerToolbar={{ left: 'title', center: 'dayGridMonth,timeGridWeek,timeGridDay', right: 'prev,next today' }}
+          events={events}
+          dateClick={handleDateClick}
+          dayCellClassNames={getDayCellClass}
+          eventClick={handleEventClick}
+          eventDidMount={handleEventMount}
+          eventWillUnmount={handleEventWillUnmount}
+          editable={true}
+          eventDrop={handleEventDrop}
+          eventResize={handleEventResize}
+          // drag across the time grid to pre-fill the new event modal with
+          // those start/end times
+          selectable={true}
+          select={(info) => openNewEventForRange(info.start, info.end)}
+          // red line at the current time on week/day views
+          nowIndicator={true}
+          // hide overnight hours so the grid focuses on the daytime planning window
+          slotMinTime="06:00:00"
+          slotMaxTime="23:00:00"
+          height="75vh"
+          eventDisplay="block"
+        />
+
+        {/* float a friendly notice over the empty grid until the user adds something. */}
+        {/* pointer-events-none so clicks pass straight through to the day cells. */}
+        {events.filter(e => !e.extendedProps?.isFriendEvent).length === 0 && (
+          <motion.div
+            className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3, duration: 0.4, ease: 'easeOut' }}
+          >
+            <div className="rounded-2xl border border-border bg-card/85 backdrop-blur-md px-6 py-5 text-center shadow-2xl ring-1 ring-black/5 max-w-xs">
+              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-blue-500/10">
+                <CalendarDays className="size-6 text-blue-500" />
+              </div>
+              <h3 className="mb-1 text-base font-semibold text-foreground">Your calendar is empty</h3>
+              <p className="text-sm text-muted-foreground">
+                Click any day or drag across the week view to plan your first event.
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </div>
 
       <Dialog open={showModal} onOpenChange={(open) => { if (!open) closeModal(); }}>
         <DialogContent className="p-0 sm:max-w-md overflow-visible">
