@@ -16,6 +16,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { fromZonedTime, toZonedTime, format as formatInTz } from 'date-fns-tz';
 import FriendShareSelector from '@/components/FriendShareSelector';
@@ -725,8 +726,8 @@ const Calendar = ({ visibleFriends = [], user }) => {
 
               <div className="grid gap-1.5">
                 <Label htmlFor="description" className="text-sm font-medium">Description</Label>
-                <Input id="description" name="description" value={formData.description}
-                  onChange={handleInputChange} placeholder="Any extra details" className="h-10" />
+                <Textarea id="description" name="description" value={formData.description}
+                  onChange={handleInputChange} placeholder="Any extra details" rows={3} />
               </div>
 
               <div className="grid gap-1.5">
