@@ -48,6 +48,8 @@ function AuthPage({ onAuth, initialMode = 'login' }) {
     }
   }
 
+  
+
   return (
     <div className="mx-auto mt-20 max-w-sm">
       <div className="mb-8 text-center">

@@ -46,11 +46,3 @@ class FriendRequest(models.Model):
 
     def __str__(self):
         return f'{self.from_user.username} -> {self.to_user.username} ({self.status})'
-
-
-#create another database that extend the default User from Django 
-class Profile(models.Model):
-    #Create an OnetoOne relationship to User (default to auth User)
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
-    #image store to avatars/
-    avatar = models.ImageField(upload_to='avatars/', null=True, blank=True)
