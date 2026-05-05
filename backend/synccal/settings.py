@@ -22,7 +22,7 @@ INSTALLED_APPS = [
     'events',
     'corsheaders',
     'channels',
-    'api',
+    'accounts',
     'django_extensions',
 ]
 

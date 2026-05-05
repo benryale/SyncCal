@@ -1,7 +1,7 @@
 """
-api/signals.py
---------------
-Signals for the 'api' app.
+accounts/signals.py
+-------------------
+Signals for the 'accounts' app.
 
 1. Auto-create UserProfile when a User is first created.
 2. Push real-time WebSocket notifications when a FriendRequest is saved,

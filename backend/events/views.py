@@ -23,7 +23,7 @@ from .merge import (
 from .models import EventSeries, Category, EventInvite, EventOccurrenceOverride
 from .serializers import EventSeriesSerializer, CategorySerializer, EventInviteSerializer
 from .zone_utils import add_duration_wallclock
-from api.models import FriendRequest
+from accounts.models import FriendRequest
 
 
 # body key → override column
