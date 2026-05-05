@@ -69,7 +69,33 @@ const makeInitialForm = (tz) => ({
   title: '', start_date: '', end_date: '', priority: 1,
   description: '', location: '', shared_with: '', timezone: tz,
   color: '#3B82F6',
+  recurrence: 'none', recurrence_until: '',
 });
+
+// build iCal RRULE from form state; null when not recurring
+const buildRrule = (recurrence, untilDateStr) => {
+  if (recurrence === 'none' || !untilDateStr) return null;
+  const freq = { daily: 'DAILY', weekly: 'WEEKLY', monthly: 'MONTHLY' }[recurrence];
+  if (!freq) return null;
+  const d = new Date(`${untilDateStr}T23:59:59Z`);
+  const pad = (n) => String(n).padStart(2, '0');
+  const until = `${d.getUTCFullYear()}${pad(d.getUTCMonth()+1)}${pad(d.getUTCDate())}` +
+                `T${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}${pad(d.getUTCSeconds())}Z`;
+  return `FREQ=${freq};UNTIL=${until}`;
+};
+
+const parseRrule = (rrule) => {
+  if (!rrule) return { recurrence: 'none', recurrence_until: '' };
+  const freqMatch = rrule.match(/FREQ=(DAILY|WEEKLY|MONTHLY)/i);
+  const untilMatch = rrule.match(/UNTIL=(\d{8}T\d{6}Z)/);
+  const recurrence = freqMatch ? freqMatch[1].toLowerCase() : 'none';
+  let until = '';
+  if (untilMatch) {
+    const s = untilMatch[1];
+    until = `${s.slice(0,4)}-${s.slice(4,6)}-${s.slice(6,8)}`;
+  }
+  return { recurrence, recurrence_until: until };
+};
 
 const isSameOrAfterToday = (date) => {
   const t = new Date(); t.setHours(0,0,0,0); return date >= t;
@@ -84,14 +110,24 @@ const eventOverlapsDate = (ev, date) => {
 };
 
 const toFcEvent = (ev) => ({
-  id: ev.id, title: ev.title, start: ev.start_date, end: ev.end_date,
+  id: ev.id,
+  title: ev.title,
+  start: ev.start || ev.start_date,
+  end:   ev.end   || ev.end_date,
+  // disable drag/resize on recurring occurrences for now
+  editable: !(ev.is_recurring),
   backgroundColor: ev.color || '#3B82F6',
   borderColor: ev.color || '#3B82F6',
   extendedProps: {
-    organizer: ev.organizer, timezone: ev.timezone,
+    seriesId: ev.series_id != null ? ev.series_id : ev.id,
+    recurrenceId: ev.recurrence_id || null,
+    isRecurring: !!ev.is_recurring,
+    organizer: ev.organizer, organizer_id: ev.organizer_id,
+    timezone: ev.timezone,
     location: ev.location, description: ev.description,
     priority: ev.priority, shared_with: ev.shared_with,
     color: ev.color || '#3B82F6',
+    rrule: ev.rrule || null,
   },
 });
 
@@ -99,10 +135,14 @@ const toFriendFcEvent = (ev) => {
   const c = getFriendColor(ev.organizer);
   return {
     id: `friend-${ev.id}`, title: ev.organizer,
-    start: ev.start_date, end: ev.end_date,
+    start: ev.start || ev.start_date,
+    end:   ev.end   || ev.end_date,
+    editable: false,
     backgroundColor: c.bg, borderColor: c.border,
     extendedProps: {
-      isFriendEvent: true, organizer: ev.organizer, timezone: ev.timezone,
+      isFriendEvent: true, isRecurring: !!ev.is_recurring,
+      seriesId: ev.series_id != null ? ev.series_id : ev.id,
+      organizer: ev.organizer, timezone: ev.timezone,
       location: ev.location, description: ev.description,
       priority: ev.priority, shared_with: ev.shared_with,
     },
@@ -302,26 +342,10 @@ const Calendar = ({ visibleFriends = [], user }) => {
   useEffect(() => {
     const unsub = subscribe((msg) => {
       if (msg.type === 'calendar_event') {
+        fetchEvents();
         const { action, event: ev } = msg;
-        if (action === 'created') {
-          if (ev.organizer_id === user?.id) {
-            setEvents(prev => prev.some(e => String(e.id) === String(ev.id)) ? prev : [...prev, toFcEvent(ev)]);
-          } else if (visibleFriends.includes(ev.organizer_id)) {
-            setEvents(prev => prev.some(e => e.id === `friend-${ev.id}`) ? prev : [...prev, toFriendFcEvent(ev)]);
-          }
-        } else if (action === 'updated') {
-          if (ev.organizer_id === user?.id) {
-            setEvents(prev => prev.map(e => String(e.id) === String(ev.id) ? toFcEvent(ev) : e));
-            toast.info('Event updated', { description: `"${ev.title}" was modified`, duration: 3000 });
-          } else if (visibleFriends.includes(ev.organizer_id)) {
-            setEvents(prev => prev.map(e => e.id === `friend-${ev.id}` ? toFriendFcEvent(ev) : e));
-          }
-        } else if (action === 'deleted') {
-          if (ev.organizer_id === user?.id) {
-            setEvents(prev => prev.filter(e => String(e.id) !== String(ev.id)));
-          } else {
-            setEvents(prev => prev.filter(e => e.id !== `friend-${ev.id}`));
-          }
+        if (action === 'updated' && ev.organizer_id !== user?.id && visibleFriends.includes(ev.organizer_id)) {
+          toast.info(`${ev.organizer || 'A friend'} updated an event`);
         }
         return;
       }
@@ -360,13 +384,28 @@ const Calendar = ({ visibleFriends = [], user }) => {
     } catch { setFormConflicts([]); }
   }, [formData.start_date, formData.end_date, formData.timezone, events, selectedId, userTz]);
 
+  const getEventsWindow = () => {
+    const api = calRef.current?.getApi();
+    if (api) {
+      const v = api.view;
+      return { start: v.activeStart, end: v.activeEnd };
+    }
+    // fallback when called before the calendar mounts
+    const now = new Date();
+    const start = new Date(now); start.setDate(now.getDate() - 30);
+    const end   = new Date(now); end.setDate(now.getDate() + 90);
+    return { start, end };
+  };
+
   const fetchEvents = async () => {
     try {
-      const res = await axios.get('/api/events/');
+      const { start, end } = getEventsWindow();
+      const params = `start=${encodeURIComponent(start.toISOString())}&end=${encodeURIComponent(end.toISOString())}`;
+      const res = await axios.get(`/api/events/?${params}`);
       let all = res.data.map(toFcEvent);
       if (visibleFriends.length > 0) {
         try {
-          const fr = await axios.get(`/api/events/?owner_id__in=${visibleFriends.join(',')}`);
+          const fr = await axios.get(`/api/events/?owner_id__in=${visibleFriends.join(',')}&${params}`);
           all = [...all, ...fr.data.map(toFriendFcEvent)];
         } catch {
           // friend events are optional, don't block
@@ -446,6 +485,7 @@ const Calendar = ({ visibleFriends = [], user }) => {
         ? (Array.isArray(ev.extendedProps.shared_with) ? ev.extendedProps.shared_with.join(', ') : ev.extendedProps.shared_with)
         : '',
       color: ev.extendedProps.color || '#3B82F6',
+      ...parseRrule(ev.extendedProps.rrule),
     });
     setShowModal(true);
   };
@@ -455,7 +495,8 @@ const Calendar = ({ visibleFriends = [], user }) => {
   const startDate = formData.start_date ? new Date(formData.start_date) : null;
   const endDate   = formData.end_date   ? new Date(formData.end_date)   : null;
   const hasInvalidRange  = Boolean(startDate && endDate && startDate >= endDate);
-  const isFormIncomplete = !formData.title.trim() || !formData.start_date || !formData.end_date;
+  const needsUntil = formData.recurrence !== 'none' && !formData.recurrence_until;
+  const isFormIncomplete = !formData.title.trim() || !formData.start_date || !formData.end_date || needsUntil;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -463,6 +504,7 @@ const Calendar = ({ visibleFriends = [], user }) => {
     setSubmitting(true);
     try {
       const tz = formData.timezone || userTz;
+      const rrule = buildRrule(formData.recurrence, formData.recurrence_until);
       const payload = {
         title: formData.title, description: formData.description,
         location: formData.location,
@@ -470,15 +512,19 @@ const Calendar = ({ visibleFriends = [], user }) => {
         end_date:   fromZonedTime(formData.end_date,   tz).toISOString(),
         timezone: tz, priority: formData.priority,
         color: formData.color,
+        rrule,
       };
       let eventId = selectedId;
       if (selectedId) {
-        const res = await axios.put(`/api/events/${selectedId}/`, payload);
-        setEvents(prev => prev.map(ev => String(ev.id) === String(selectedId) ? toFcEvent(res.data) : ev));
+        // selectedId may be a composite "seriesId:rid"; series mutations target the series id
+        const sid = String(selectedId).split(':')[0];
+        const res = await axios.put(`/api/events/${sid}/`, payload);
+        eventId = res.data.id;
+        await fetchEvents();
       } else {
         const res = await axios.post('/api/events/', payload);
         eventId = res.data.id;
-        setEvents(prev => [...prev, toFcEvent(res.data)]);
+        await fetchEvents();
       }
       const toInvite = formData.shared_with
         ? formData.shared_with.split(',').map(n => n.trim()).filter(Boolean) : [];
@@ -495,25 +541,29 @@ const Calendar = ({ visibleFriends = [], user }) => {
   };
 
   const handleEventDrop = async (info) => {
+    const sid = info.event.extendedProps?.seriesId || String(info.event.id).split(':')[0];
     try {
-      await axios.put(`/api/events/${info.event.id}/`, {
+      await axios.put(`/api/events/${sid}/`, {
         title: info.event.title,
         start_date: info.event.start.toISOString(),
         end_date: (info.event.end || info.event.start).toISOString(),
         color: info.event.extendedProps?.color || '#3B82F6',
       });
+      await fetchEvents();
       toast.success('Event moved');
     } catch { toast.error("Couldn't move that event."); info.revert(); }
   };
 
   const handleEventResize = async (info) => {
+    const sid = info.event.extendedProps?.seriesId || String(info.event.id).split(':')[0];
     try {
-      await axios.put(`/api/events/${info.event.id}/`, {
+      await axios.put(`/api/events/${sid}/`, {
         title: info.event.title,
         start_date: info.event.start.toISOString(),
         end_date: info.event.end.toISOString(),
         color: info.event.extendedProps?.color || '#3B82F6',
       });
+      await fetchEvents();
       toast.success('Event updated');
     } catch { toast.error("Couldn't resize that event."); info.revert(); }
   };
@@ -538,9 +588,10 @@ const Calendar = ({ visibleFriends = [], user }) => {
   const handleDelete = () => setConfirmDelete(true);
 
   const doDelete = async () => {
+    const sid = String(selectedId).split(':')[0];
     try {
-      await axios.delete(`/api/events/${selectedId}/`);
-      setEvents(prev => prev.filter(ev => String(ev.id) !== String(selectedId)));
+      await axios.delete(`/api/events/${sid}/`);
+      await fetchEvents();
       toast.success('Event deleted');
       setConfirmDelete(false);
       closeModal();
@@ -673,18 +724,16 @@ const Calendar = ({ visibleFriends = [], user }) => {
           editable={true}
           eventDrop={handleEventDrop}
           eventResize={handleEventResize}
-          // drag across the time grid to pre-fill the new event modal
+          datesSet={() => fetchEvents()}
           selectable={true}
           select={(info) => openNewEventForRange(info.start, info.end)}
           nowIndicator={true}
-          // limit the day grid to typical waking hours
           slotMinTime="06:00:00"
           slotMaxTime="23:00:00"
           height="75vh"
           eventDisplay="block"
         />
 
-        {/* friendly notice over the empty grid; clicks pass through to the day cells */}
         {events.filter(e => !e.extendedProps?.isFriendEvent).length === 0 && (
           <motion.div
             className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center"
@@ -807,6 +856,34 @@ const Calendar = ({ visibleFriends = [], user }) => {
                 <Textarea id="description" name="description" value={formData.description}
                   onChange={handleInputChange} placeholder="Any extra details" rows={3} />
               </div>
+
+              <div className="grid gap-1.5">
+                <Label htmlFor="recurrence" className="text-sm font-medium">Repeats</Label>
+                <select
+                  id="recurrence" name="recurrence"
+                  value={formData.recurrence}
+                  onChange={handleInputChange}
+                  className="rounded-md border border-border bg-background px-3 py-2 text-sm h-10"
+                >
+                  <option value="none">Doesn't repeat</option>
+                  <option value="daily">Daily</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="monthly">Monthly</option>
+                </select>
+              </div>
+
+              {formData.recurrence !== 'none' && (
+                <div className="grid gap-1.5">
+                  <Label htmlFor="recurrence_until" className="text-sm font-medium">Until</Label>
+                  <Input
+                    id="recurrence_until" name="recurrence_until" type="date"
+                    value={formData.recurrence_until}
+                    onChange={handleInputChange}
+                    className="h-10"
+                    required
+                  />
+                </div>
+              )}
 
               <div className="grid gap-1.5">
                 <Label className="text-sm font-medium">Share with Friends</Label>

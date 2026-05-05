@@ -45,3 +45,36 @@ def resolve_occurrences(
             'location':    ov.location_override    if ov is not None and ov.location_override    is not None else series.location,
             'priority':    ov.priority_override    if ov is not None and ov.priority_override    is not None else series.priority,
         }
+
+
+def occurrence_payload(series, occurrence):
+    # flat dict shape returned by GET /api/events/?start&end
+    rid = occurrence['recurrence_id']
+    rid_iso = rid.isoformat() if hasattr(rid, 'isoformat') else str(rid)
+    start = occurrence['start']
+    end = occurrence['end']
+    start_iso = start.isoformat() if hasattr(start, 'isoformat') else str(start)
+    end_iso = end.isoformat() if hasattr(end, 'isoformat') else str(end)
+    return {
+        'id': f"{series.id}:{rid_iso}",
+        'series_id': series.id,
+        'recurrence_id': rid_iso,
+        'is_recurring': series.rrule is not None,
+        'title': occurrence['title'],
+        'description': occurrence['description'],
+        'location': occurrence['location'],
+        'priority': occurrence['priority'],
+        'start': start_iso,
+        'end': end_iso,
+        # legacy field names for Calendar.jsx
+        'start_date': start_iso,
+        'end_date': end_iso,
+        'organizer': series.organizer.username,
+        'organizer_id': series.organizer_id,
+        'timezone': series.timezone,
+        'color': series.color or '#3B82F6',
+        'rrule': series.rrule,
+        'shared_with': list(series.shared_with.values_list('id', flat=True)),
+        'created_at': series.created_at.isoformat() if series.created_at else None,
+        'updated_at': series.updated_at.isoformat() if series.updated_at else None,
+    }

@@ -20,9 +20,10 @@ from .merge import (
     override_is_empty,
     override_value_for_field,
 )
+from .expansion import resolve_occurrences, occurrence_payload
 from .models import EventSeries, EventInvite, EventOccurrenceOverride
 from .serializers import EventSeriesSerializer, EventInviteSerializer
-from .visibility import accepted_friend_ids
+from .visibility import accepted_friend_ids, redact_event_dict, user_can_see_event_details
 from .zone_utils import add_duration_wallclock
 from accounts.models import FriendRequest
 
@@ -95,6 +96,49 @@ class EventSeriesViewSet(viewsets.ModelViewSet):
         ).values_list('event_id', flat=True)
         return EventSeries.objects.filter(Q(organizer=user) | Q(id__in=accepted_event_ids)).distinct()
 
+    # max expansion window — 1 year covers any FullCalendar view
+    _MAX_WINDOW_DAYS = 366
+
+    def list(self, request, *args, **kwargs):
+        start_param = request.query_params.get('start')
+        end_param = request.query_params.get('end')
+        # legacy path: no window → fall back to default DRF behavior (raw series rows)
+        if not start_param or not end_param:
+            return super().list(request, *args, **kwargs)
+
+        window_start = parse_datetime(start_param)
+        window_end = parse_datetime(end_param)
+        if window_start is None or window_end is None:
+            return Response(
+                {'error': 'start and end must be ISO 8601 datetimes'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if timezone.is_naive(window_start):
+            window_start = timezone.make_aware(window_start, timezone.utc)
+        if timezone.is_naive(window_end):
+            window_end = timezone.make_aware(window_end, timezone.utc)
+        if window_end <= window_start:
+            return Response(
+                {'error': 'end must be after start'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if (window_end - window_start).days > self._MAX_WINDOW_DAYS:
+            return Response(
+                {'error': f'window cannot exceed {self._MAX_WINDOW_DAYS} days'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        qs = self.get_queryset().prefetch_related('overrides', 'shared_with')
+        results = []
+        user = request.user
+        for series in qs:
+            entitled = user_can_see_event_details(user, series)
+            for occ in resolve_occurrences(series, window_start, window_end):
+                row = occurrence_payload(series, occ)
+                if not entitled:
+                    redact_event_dict(row)
+                results.append(row)
+        return Response(results)
 
     def perform_create(self, serializer):
         # default tz to organizer preference unless payload sent one

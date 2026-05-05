@@ -604,3 +604,112 @@ class FriendEventVisibilityTests(APITestCase):
         self.assertEqual(ev['title'], 'Therapy')
         self.assertEqual(ev['description'], 'weekly')
         self.assertEqual(ev['location'], 'Office 3B')
+
+
+class OccurrenceExpansionAPITests(APITestCase):
+
+    def setUp(self):
+        from accounts.models import FriendRequest
+        self.organizer = User.objects.create_user(username='organizer', password='pass')
+        self.friend = User.objects.create_user(username='friend', password='pass')
+        FriendRequest.objects.create(
+            from_user=self.friend, to_user=self.organizer, status='accepted',
+        )
+        self.client.force_authenticate(user=self.organizer)
+
+    def _window(self, weeks_after=4):
+        start = BASE_TIME - timedelta(days=1)
+        end = BASE_TIME + timedelta(weeks=weeks_after)
+        return {'start': start.isoformat(), 'end': end.isoformat()}
+
+    def test_no_window_returns_legacy_series_shape(self):
+        _make_series(self.organizer, title='A')
+        r = self.client.get('/api/events/')
+        self.assertEqual(r.status_code, 200)
+        body = r.json()
+        self.assertEqual(len(body), 1)
+        self.assertIn('dtstart', body[0])
+        self.assertIn('duration', body[0])
+
+    def test_with_window_returns_occurrence_shape(self):
+        _make_series(self.organizer, title='A')
+        r = self.client.get('/api/events/', self._window())
+        self.assertEqual(r.status_code, 200)
+        ev = r.json()[0]
+        self.assertIn(':', str(ev['id']))
+        self.assertIn('series_id', ev)
+        self.assertIn('recurrence_id', ev)
+        self.assertIn('start', ev)
+        self.assertIn('end', ev)
+        self.assertIn('is_recurring', ev)
+
+    def test_recurring_series_expands(self):
+        s = _make_series(self.organizer, rrule=_bounded_rrule(), title='Weekly')
+        r = self.client.get('/api/events/', self._window(weeks_after=4))
+        self.assertEqual(r.status_code, 200)
+        rows = r.json()
+        self.assertEqual(len(rows), 4)
+        self.assertTrue(all(row['series_id'] == s.id for row in rows))
+        rids = {row['recurrence_id'] for row in rows}
+        self.assertEqual(len(rids), 4)
+
+    def test_cancelled_occurrence_is_dropped(self):
+        s = _make_series(self.organizer, rrule=_bounded_rrule())
+        # first Monday after BASE_TIME (Tue 4/21) is 4/27
+        first_rid = BASE_TIME + timedelta(days=6)
+        EventOccurrenceOverride.objects.create(
+            series=s,
+            recurrence_id=first_rid,
+            is_cancelled=True,
+        )
+        r = self.client.get('/api/events/', self._window(weeks_after=4))
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(len(r.json()), 3)
+
+    def test_field_override_applied_in_occurrence(self):
+        s = _make_series(self.organizer, rrule=_bounded_rrule(), title='Standup')
+        # 2nd occurrence: first Monday + 1 week = 5/4
+        second_rid = BASE_TIME + timedelta(days=13)
+        EventOccurrenceOverride.objects.create(
+            series=s,
+            recurrence_id=second_rid,
+            title_override='Special',
+        )
+        r = self.client.get('/api/events/', self._window(weeks_after=4))
+        self.assertEqual(r.status_code, 200)
+        rows = sorted(r.json(), key=lambda x: x['start'])
+        self.assertEqual(len(rows), 4)
+        titles = [row['title'] for row in rows]
+        self.assertEqual(titles.count('Special'), 1)
+        self.assertEqual(titles.count('Standup'), 3)
+
+    def test_window_clamping_400_on_too_wide(self):
+        r = self.client.get('/api/events/', {
+            'start': BASE_TIME.isoformat(),
+            'end': (BASE_TIME + timedelta(days=800)).isoformat(),
+        })
+        self.assertEqual(r.status_code, 400)
+
+    def test_invalid_iso_400(self):
+        r = self.client.get('/api/events/?start=garbage&end=garbage')
+        self.assertEqual(r.status_code, 400)
+
+    def test_friend_view_redacts_per_occurrence(self):
+        s = _make_series(
+            self.organizer, rrule=_bounded_rrule(),
+            title='Therapy', description='weekly', location='Office 3B',
+        )
+        self.client.force_authenticate(user=self.friend)
+        params = self._window(weeks_after=4)
+        params['owner_id__in'] = str(self.organizer.id)
+        r = self.client.get('/api/events/', params)
+        self.assertEqual(r.status_code, 200)
+        rows = r.json()
+        self.assertEqual(len(rows), 4)
+        for row in rows:
+            self.assertEqual(row['title'], '')
+            self.assertEqual(row['description'], '')
+            self.assertEqual(row['location'], '')
+            self.assertTrue(row['start'])
+            self.assertTrue(row['end'])
+            self.assertEqual(row['organizer'], 'organizer')
