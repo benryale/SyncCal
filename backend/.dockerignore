@@ -1,0 +1,16 @@
+__pycache__
+*.pyc
+*.pyo
+venv/
+.venv/
+env/
+.env
+db.sqlite3
+db.sqlite3-journal
+*.crt
+*.key
+.git
+.gitignore
+.dockerignore
+Dockerfile
+package-lock.json
