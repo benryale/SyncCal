@@ -206,7 +206,6 @@ frontend/node_modules/
 certs/
 
 # local-only tooling, dumps, and editor configs
-.claude/
 directory_dump.txt
 dump_tree.py
 dev.sh
